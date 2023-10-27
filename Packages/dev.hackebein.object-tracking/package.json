@@ -1,0 +1,18 @@
+{
+  "name": "dev.hackebein.object-tracking",
+  "displayName": "VRChat Object Tracking Setup",
+  "version": "0.1.0",
+  "description": "VRChat Object Tracking automated Setup",
+  "gitDependencies": {},
+  "vpmDependencies": {
+    "com.vrchat.avatars": ">= 3.1.12"
+  },
+  "author": {
+    "name": "Lars \"Hackebein\" Olzem",
+    "email": "hackebein@gmail.com"
+  },
+  "legacyFolders": {},
+  "legacyFiles": {},
+  "localPath": "C:\\Users\\User\\Projects\\Object-Tracking-VPM\\Packages\\dev.hackebein.object-tracking",
+  "unity": "2019.4"
+}
