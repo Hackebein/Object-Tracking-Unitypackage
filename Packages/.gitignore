@@ -1,6 +1,5 @@
 /*/
-!com.vrchat.core.*
+!com.vrchat.core.bootstrap
 
 # Change this to match your new package name
-!dev.hackebein.object-tracking 
-!com.vrchat.core.*/
+!dev.hackebein.object-tracking
