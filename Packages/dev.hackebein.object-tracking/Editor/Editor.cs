@@ -12,6 +12,7 @@ namespace Hackebein.ObjectTracking
     [CustomEditor(typeof(ObjectTrackingSetup))]
     public class ObjectTrackingEditor : Editor
     {
+        private float realEyeHeight = 1.7f;
         private int RangeNumberInputField(int value, int min, int max, GUILayoutOption[] guiLayoutOption)
         {
             return (int)RangeNumberInputField((float)value, min, max, guiLayoutOption);
@@ -34,8 +35,7 @@ namespace Hackebein.ObjectTracking
 
         private int SliderNumberInputField(int value, int min, int max, GUILayoutOption[] guiLayoutOption)
         {
-            return (int)GUILayout.HorizontalSlider(value, min, max,
-                guiLayoutOption.Append(GUILayout.Height(20)).ToArray());
+            return (int)GUILayout.HorizontalSlider(value, min, max, guiLayoutOption.Append(GUILayout.Height(20)).ToArray());
         }
 
         private void LabelAccuracy(int range, int bits, string suffix, GUILayoutOption[] guiLayoutOption)
@@ -71,12 +71,31 @@ namespace Hackebein.ObjectTracking
                 GUILayout.Label("n/A", guiLayoutOption);
             }
         }
+        
+        private float? GetScaleFactorFromAvatar(GameObject avatar)
+        {
+            if (avatar != null)
+            {
+                Transform transform = avatar.transform.Find("ObjectTracking");
+                if (transform != null)
+                {
+                    Vector3 scale = transform.localScale;
+                    if (Math.Abs(scale.x - scale.y) < 0.00001 && Math.Abs(scale.x - scale.z) < 0.00001)
+                    {
+                        return scale.x;
+                    }
+                }
+            }
+
+            return null;
+        }
 
         private GUILayoutOption[] RelativeWidth(float width)
         {
             return new[] { GUILayout.Width(EditorGUIUtility.currentViewWidth * 0.95f * width) };
         }
 
+        // TODO: Load everything from the avatar and fill the fields
         public override void OnInspectorGUI()
         {
             ObjectTrackingSetup setup = ((ObjectTrackingSetup)target);
@@ -124,10 +143,6 @@ namespace Hackebein.ObjectTracking
                 {
                     avatarEyeHeight = avatarDescriptor.ViewPosition.y;
                 }
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("Avatar eye height");
-                GUILayout.Label(avatarEyeHeight + "m", RelativeWidth((float)3 / 5));
-                EditorGUILayout.EndHorizontal();
             }
             else
             {
@@ -137,20 +152,34 @@ namespace Hackebein.ObjectTracking
                 EditorGUILayout.EndHorizontal();
             }
 
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Label("Real eye height (in m)");
-            // TODO: measure with HMD over OpenVR?
-            setup.eyeHeight = EditorGUILayout.FloatField(setup.eyeHeight, RelativeWidth((float)3 / 5));
-            EditorGUILayout.EndHorizontal();
-
-            if (avatarEyeHeight > 0)
+            float? scale = GetScaleFactorFromAvatar(setup.rootObjectOfAvatar);
+            if (scale == null && avatarEyeHeight > 0)
             {
-
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label("Avatar eye height");
+                GUILayout.Label(avatarEyeHeight + "m", RelativeWidth((float)3 / 5));
+                EditorGUILayout.EndHorizontal();
+                
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Label("Real eye height (in m)");
+                // TODO: measure with HMD over OpenVR?
+                realEyeHeight = EditorGUILayout.FloatField(realEyeHeight, RelativeWidth((float)3 / 5));
+                EditorGUILayout.EndHorizontal();
+                if (realEyeHeight > 0)
+                {
+                    scale = avatarEyeHeight / realEyeHeight;
+                }
+            }
+            
+            if (scale != null)
+            {
+                setup.scale = (float)scale;
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Label("Eye height ratio");
-                GUILayout.Label((avatarEyeHeight / setup.eyeHeight).ToString("F4") + "x", RelativeWidth((float)3 / 5));
+                GUILayout.Label(setup.scale.ToString("F4") + "x", RelativeWidth((float)3 / 5));
                 EditorGUILayout.EndHorizontal();
             }
+            
             EditorGUILayout.BeginHorizontal();
             GUILayout.Label("Tracker serial number");
             // TODO: get tracker serial number from OpenVR
@@ -170,7 +199,11 @@ namespace Hackebein.ObjectTracking
                 EditorGUILayout.BeginHorizontal();
                 GUILayout.Label("Asset folder");
                 // TODO: improve asset folder selection
-                setup.assetFolder = GUILayout.TextField(setup.assetFolder, RelativeWidth((float)3 / 5));
+                GUILayout.Label(setup.assetFolder, RelativeWidth((float)2 / 5));
+                if (GUILayout.Button("Select", RelativeWidth((float)1 / 5)))
+                {
+                    setup.assetFolder = EditorUtility.OpenFolderPanel("Select asset folder", setup.assetFolder, "");
+                }
                 EditorGUILayout.EndHorizontal();
                 if (setup.assetFolder.Length == 0)
                 {
@@ -484,7 +517,7 @@ namespace Hackebein.ObjectTracking
                 GUILayout.Label("Bits per axe:", RelativeWidth((float)1 / 4));
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.BeginVertical();
-                GUILayout.Label("Range:", RelativeWidth((float)1 / 4));
+                GUILayout.Label("Range (in m):", RelativeWidth((float)1 / 4));
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.BeginVertical();
                 GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 4));
@@ -536,8 +569,8 @@ namespace Hackebein.ObjectTracking
                 setup.maxPX = setup.maxPY = setup.maxPZ = positionRange / 2;
 
                 setup.bitsRX = setup.bitsRY = setup.bitsRZ = rotationBits;
-                setup.minRX = setup.minRY = setup.minRZ = 0;
-                setup.maxRX = setup.maxRY = setup.maxRZ = 360;
+                setup.minRX = setup.minRY = setup.minRZ = -180;
+                setup.maxRX = setup.maxRY = setup.maxRZ = 180;
             }
 
             EditorGUILayout.Space();
@@ -551,12 +584,6 @@ namespace Hackebein.ObjectTracking
             {
                 used = setup.expressionParameters.CalcTotalCost();
             }
-
-            GUILayout.Label(costs + "/" + (VRCExpressionParameters.MAX_PARAMETER_COST - used),
-                RelativeWidth((float)1 / 2));
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.Space();
 
             setup.expressionParameters = null;
             setup.fxController = null;
@@ -575,10 +602,20 @@ namespace Hackebein.ObjectTracking
                 }
             }
 
+            GUILayout.Label(costs + " / " + (VRCExpressionParameters.MAX_PARAMETER_COST - used) + " bits", RelativeWidth((float)1 / 2));
+            EditorGUILayout.EndHorizontal();
+            using (new GUILayout.HorizontalScope())
+            {
+                // TODO: take removed parameters into account
+                GUILayout.Label("Costs", RelativeWidth((float)1 / 2));
+                GUILayout.Label(setup.bitsRX + setup.bitsRY + setup.bitsRZ + setup.bitsPX + setup.bitsPY + setup.bitsPZ + " / " + (256 - setup.expressionParameters.parameters.Length) + " parameters", RelativeWidth((float)1 / 2));
+            }
+
+            EditorGUILayout.Space();
+
             EditorGUILayout.BeginHorizontal();
-            if (setup.rootObjectOfAvatar == null || setup.fxController == null || setup.expressionParameters == null ||
-                setup.trackerSerialNumber.Length == 0 || setup.assetFolder.Length == 0 || costs >
-                VRCExpressionParameters.MAX_PARAMETER_COST - setup.expressionParameters.CalcTotalCost())
+            // TODO: better check than `setup.assetFolder.Length == 0`
+            if (setup.rootObjectOfAvatar == null || setup.fxController == null || setup.expressionParameters == null || setup.trackerSerialNumber.Length == 0 || setup.assetFolder.Length == 0 || costs > VRCExpressionParameters.MAX_PARAMETER_COST - setup.expressionParameters.CalcTotalCost() || setup.expressionParameters.parameters.Length + setup.bitsRX + setup.bitsRY + setup.bitsRZ + setup.bitsPX + setup.bitsPY + setup.bitsPZ > 256 || scale == null)
             {
                 GUI.enabled = false;
             }

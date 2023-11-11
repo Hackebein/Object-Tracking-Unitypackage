@@ -28,7 +28,7 @@ namespace Hackebein.ObjectTracking
         public GameObject rootObjectOfAvatar;
         public AnimatorController fxController;
         public VRCExpressionParameters expressionParameters;
-        public float eyeHeight = 1.50f;
+        public float scale = 1.0f;
         public int bitsPX = 10;
         public int bitsPY = 9;
         public int bitsPZ = 10;
@@ -38,15 +38,15 @@ namespace Hackebein.ObjectTracking
         public int minPX = -5;
         public int minPY = 0;
         public int minPZ = -5;
-        public int minRX = 0;
-        public int minRY = 0;
-        public int minRZ = 0;
+        public int minRX = -180;
+        public int minRY = -180;
+        public int minRZ = -180;
         public int maxPX = 5;
         public int maxPY = 3;
         public int maxPZ = 5;
-        public int maxRX = 360;
-        public int maxRY = 360;
-        public int maxRZ = 360;
+        public int maxRX = 180;
+        public int maxRY = 180;
+        public int maxRZ = 180;
 
         private AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
         {
@@ -307,6 +307,34 @@ namespace Hackebein.ObjectTracking
 
             return blendTree;
         }
+        
+        private void ResetGameObject(GameObject gameObject)
+        {
+            gameObject.transform.localPosition = Vector3.zero;
+            gameObject.transform.localRotation = Quaternion.identity;
+            gameObject.transform.localScale = Vector3.one;
+            // Remove all components
+            foreach (Component component in gameObject.GetComponents<Component>())
+            {
+                if (component is Transform)
+                {
+                    continue;
+                }
+
+                DestroyImmediate(component);
+            }
+        }
+        
+        private GameObject FindOrCreateEmptyGameObject(string name, GameObject parent)
+        {
+            Transform transform = parent.transform.Find(name);
+            if (transform != null)
+            {
+                return transform.gameObject;
+            }
+
+            return CreateEmptyGameObject(name, parent);
+        }
 
         private GameObject CreateEmptyGameObject(string name, GameObject parent)
         {
@@ -320,11 +348,13 @@ namespace Hackebein.ObjectTracking
         public void ValidateAndRemoveAll()
         {
             Remove("", rootObjectOfAvatar, fxController, expressionParameters);
+            // TODO: Remove GameObjects but preserve containing GameObjects
         }
 
         public void ValidateAndRemove()
         {
             Remove(trackerSerialNumber, rootObjectOfAvatar, fxController, expressionParameters);
+            // TODO: Remove GameObjects but preserve containing GameObjects
         }
 
         private void Remove(string name, GameObject root, AnimatorController controller, VRCExpressionParameters expressionParameters)
@@ -332,7 +362,7 @@ namespace Hackebein.ObjectTracking
             RemoveLayer("ObjectTracking/" + name, controller);
             RemoveAnimatorParameters("ObjectTracking/" + name, controller);
             RemoveExpressionParameters("ObjectTracking/" + name, expressionParameters);
-            RemoveGameObjects(name, root);
+            //RemoveGameObjects(name, root);
             RemoveAssets("Assets/" + assetFolder + "/" + name);
         }
 
@@ -382,15 +412,6 @@ namespace Hackebein.ObjectTracking
             axes.Add("RY", new int[] { bitsRY, minRY, maxRY });
             axes.Add("RZ", new int[] { bitsRZ, minRZ, maxRZ });
 
-            VRCAvatarDescriptor avatarDescriptor = (VRCAvatarDescriptor)rootObjectOfAvatar.GetComponent(typeof(VRCAvatarDescriptor));
-            if (avatarDescriptor == null)
-            {
-                Debug.LogError("Avatar Descriptor not found");
-                return;
-            }
-
-            float scale = avatarDescriptor.ViewPosition.y / eyeHeight;
-
             Remove(trackerSerialNumber, rootObjectOfAvatar, fxController, expressionParameters);
             Create(trackerSerialNumber, rootObjectOfAvatar, fxController, expressionParameters, axes, scale);
         }
@@ -414,43 +435,42 @@ namespace Hackebein.ObjectTracking
                 int accuracy = pair.Value[0];
                 int accuracyBytes = accuracy / 8;
                 int accuracyBits = accuracy - (accuracyBytes * 8);
-                controller =
-                    CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key);
-                controller =
-                    CreateFloatParameterAndAddToAnimator(controller,
-                        "ObjectTracking/" + name + "/" + pair.Key + "-Raw");
-                expressionParameters = CreateFloatParameterAndAddToExpressionParameters(expressionParameters,
-                    "ObjectTracking/" + name + "/" + pair.Key + "-Raw", 0.0f, false, false);
+                controller = CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key);
+                controller = CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key + "-Raw");
+                expressionParameters = CreateFloatParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/" + pair.Key + "-Raw", 0.0f, false, false);
                 for (int i = 0; i < accuracyBits; i++)
                 {
-                    controller = CreateBoolParameterAndAddToAnimator(controller,
-                        "ObjectTracking/" + name + "/" + pair.Key + "-Bit" + i);
-                    expressionParameters = CreateBoolParameterAndAddToExpressionParameters(expressionParameters,
-                        "ObjectTracking/" + name + "/" + pair.Key + "-Bit" + i, false, false, true);
-                    controller = CreateFloatParameterAndAddToAnimator(controller,
-                        "ObjectTracking/" + name + "/" + pair.Key + "-Bit" + i + "-Float");
+                    controller = CreateBoolParameterAndAddToAnimator(controller,"ObjectTracking/" + name + "/" + pair.Key + "-Bit" + i);
+                    expressionParameters = CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/" + pair.Key + "-Bit" + i, false, false, true);
+                    controller = CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key + "-Bit" + i + "-Float");
                 }
 
                 for (int i = 0; i < accuracyBytes; i++)
                 {
-                    controller = CreateIntParameterAndAddToAnimator(controller,
-                        "ObjectTracking/" + name + "/" + pair.Key + "-Byte" + i);
-                    expressionParameters = CreateIntParameterAndAddToExpressionParameters(expressionParameters,
-                        "ObjectTracking/" + name + "/" + pair.Key + "-Byte" + i, 0, false, true);
-                    controller = CreateFloatParameterAndAddToAnimator(controller,
-                        "ObjectTracking/" + name + "/" + pair.Key + "-Byte" + i + "-Float");
+                    controller = CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key + "-Byte" + i);
+                    expressionParameters = CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/" + pair.Key + "-Byte" + i, 0, false, true);
+                    controller = CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key + "-Byte" + i + "-Float");
                 }
             }
 
-            // Objects
-            GameObject x = CreateEmptyGameObject(name, root);
-            GameObject y = CreateEmptyGameObject(name, x);
-            GameObject z = CreateEmptyGameObject(name, y);
-            GameObject w = CreateEmptyGameObject(name, z);
-            x.transform.localScale = new Vector3(scale, scale, scale);
-
-            // Constraints
-            ParentConstraint constraint = w.AddComponent<ParentConstraint>();
+            // Object for scaling
+            GameObject b = FindOrCreateEmptyGameObject("ObjectTracking", root);
+            ResetGameObject(b);
+            
+            // Object for position (x, y, z)
+            GameObject x = FindOrCreateEmptyGameObject(name, b);
+            ResetGameObject(x);
+            GameObject y = FindOrCreateEmptyGameObject(name, x);
+            ResetGameObject(y);
+            GameObject z = FindOrCreateEmptyGameObject(name, y);
+            ResetGameObject(z);
+            
+            // Object with constraint for rotation (x, y, z)
+            GameObject r = FindOrCreateEmptyGameObject(name, z);
+            ResetGameObject(r);
+            
+            // Constraint
+            ParentConstraint constraint = r.AddComponent<ParentConstraint>();
             constraint.constraintActive = true;
             constraint.enabled = true;
             constraint.locked = true;
@@ -461,9 +481,13 @@ namespace Hackebein.ObjectTracking
             constraint.AddSource(source1);
 
             ConstraintSource source2 = new ConstraintSource();
+            // TODO: add variable for smoothness factor/weight
             source2.weight = 3;
-            source2.sourceTransform = w.transform;
+            source2.sourceTransform = r.transform;
             constraint.AddSource(source2);
+            
+            // Set scale
+            b.transform.localScale = new Vector3(scale, scale, scale);
 
             // Animation Controller
             CreateProcessingLayer(name, controller, axes);
@@ -524,8 +548,7 @@ namespace Hackebein.ObjectTracking
             controller.layers = layers;
 
             // Transition Conditions
-            layer.stateMachine.entryTransitions = new[]
-                { CreateEntryBoolTransition("isRemote", "IsLocal", false, stateRemote) };
+            layer.stateMachine.entryTransitions = new[] { CreateEntryBoolTransition("isRemote", "IsLocal", false, stateRemote) };
             stateLocal.transitions = new[] { CreateBoolTransition("isRemote", "IsLocal", false, stateRemote) };
             stateRemote.transitions = new[] { CreateBoolTransition("isLocal", "IsLocal", true, stateLocal) };
 
@@ -535,27 +558,27 @@ namespace Hackebein.ObjectTracking
             switch (axe.Key)
             {
                 case "PX":
-                    path = name + "/" + name;
+                    path = "ObjectTracking/" + name;
                     property = "m_LocalPosition.x";
                     break;
                 case "PY":
-                    path = name + "/" + name + "/" + name;
+                    path = "ObjectTracking/" + name + "/" + name;
                     property = "m_LocalPosition.y";
                     break;
                 case "PZ":
-                    path = name + "/" + name + "/" + name + "/" + name;
+                    path = "ObjectTracking/" + name + "/" + name + "/" + name;
                     property = "m_LocalPosition.z";
                     break;
                 case "RX":
-                    path = name + "/" + name + "/" + name + "/" + name + "/" + name;
+                    path = "ObjectTracking/" + name + "/" + name + "/" + name + "/" + name;
                     property = "m_TranslationOffsets.Array.data[0].x";
                     break;
                 case "RY":
-                    path = name + "/" + name + "/" + name + "/" + name + "/" + name;
+                    path = "ObjectTracking/" + name + "/" + name + "/" + name + "/" + name;
                     property = "m_TranslationOffsets.Array.data[0].y";
                     break;
                 case "RZ":
-                    path = name + "/" + name + "/" + name + "/" + name + "/" + name;
+                    path = "ObjectTracking/" + name + "/" + name + "/" + name + "/" + name;
                     property = "m_TranslationOffsets.Array.data[0].z";
                     break;
             }
