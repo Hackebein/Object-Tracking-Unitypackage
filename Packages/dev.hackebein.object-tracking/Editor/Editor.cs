@@ -1,4 +1,4 @@
-#if VRC_SDK_VRCSDK3
+#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
 using System;
 using System.Linq;
 using UnityEditor;
@@ -9,10 +9,11 @@ using VRC.SDK3.Avatars.ScriptableObjects;
 
 namespace Hackebein.ObjectTracking
 {
-    [CustomEditor(typeof(ObjectTrackingSetup))]
+    [CustomEditor(typeof(Setup))]
     public class ObjectTrackingEditor : Editor
     {
-        private float realEyeHeight = 1.7f;
+        private float _realEyeHeight = 1.7f;
+
         private int RangeNumberInputField(int value, int min, int max, GUILayoutOption[] guiLayoutOption)
         {
             return (int)RangeNumberInputField((float)value, min, max, guiLayoutOption);
@@ -40,23 +41,19 @@ namespace Hackebein.ObjectTracking
 
         private void LabelAccuracy(int range, int bits, string suffix, GUILayoutOption[] guiLayoutOption)
         {
-            double accuracy = (float)range / (1 << bits);
+            long accuracy = range / (1L << bits);
             if (bits == 32 && range == 42)
             {
                 // ;)
                 GUILayout.Label("^,....^ remember i love you", guiLayoutOption);
             }
-            else if (bits >= 32)
-            {
-                GUILayout.Label("n/A", guiLayoutOption);
-            }
             else if (suffix == "m" && accuracy < 0.001)
             {
-                GUILayout.Label(accuracy.ToString("F4") + suffix + " o.O", guiLayoutOption);
+                GUILayout.Label("<0.001" + suffix, guiLayoutOption);
             }
             else if (suffix == "°" && accuracy < 0.1)
             {
-                GUILayout.Label(accuracy.ToString("F2") + suffix + " o.O", guiLayoutOption);
+                GUILayout.Label("<0.1" + suffix, guiLayoutOption);
             }
             else if (bits > 0 && suffix == "m")
             {
@@ -71,586 +68,1009 @@ namespace Hackebein.ObjectTracking
                 GUILayout.Label("n/A", guiLayoutOption);
             }
         }
-        
-        private float? GetScaleFactorFromAvatar(GameObject avatar)
-        {
-            if (avatar != null)
-            {
-                Transform transform = avatar.transform.Find("ObjectTracking");
-                if (transform != null)
-                {
-                    Vector3 scale = transform.localScale;
-                    if (Math.Abs(scale.x - scale.y) < 0.00001 && Math.Abs(scale.x - scale.z) < 0.00001)
-                    {
-                        return scale.x;
-                    }
-                }
-            }
-
-            return null;
-        }
 
         private GUILayoutOption[] RelativeWidth(float width)
         {
             return new[] { GUILayout.Width(EditorGUIUtility.currentViewWidth * 0.95f * width) };
         }
 
-        // TODO: Load everything from the avatar and fill the fields
+        private string GenerateCostsString(string unit, int expected, int used, int usedTotal, int max)
+        {
+            return expected + " / " + (max - usedTotal + used) + " (max: " + max + ") " + unit;
+        }
+
         public override void OnInspectorGUI()
         {
-            ObjectTrackingSetup setup = ((ObjectTrackingSetup)target);
-            float avatarEyeHeight = 0;
-            VRCAvatarDescriptor avatarDescriptor = null;
+            Setup setup = (Setup)target;
 
-            setup.mode = (ObjectTrackingSetup.Modes)GUILayout.Toolbar(setup.mode.GetHashCode(), setup.modesText);
-            // TODO: switch for avatar less descriptor (expert?)
+            setup.mode = (Utility.Modes)GUILayout.Toolbar(setup.mode.GetHashCode(), Utility.ModesText);
 
-            EditorGUILayout.Space();
-
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Label("Avatar");
-            // TODO: dropdown for avatar selection? or better filter for current solution like in VRCSDK3?
-            setup.rootObjectOfAvatar =
-                (GameObject)EditorGUILayout.ObjectField(setup.rootObjectOfAvatar,
-                    typeof(GameObject), true, RelativeWidth((float)3 / 5));
-            if (setup.rootObjectOfAvatar != null)
+            if (setup.mode == Utility.Modes.Expert)
             {
-                avatarDescriptor = (VRCAvatarDescriptor)setup.rootObjectOfAvatar.GetComponent(typeof(VRCAvatarDescriptor));
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Game Object:");
+                    setup.rootGameObject =
+                        (GameObject)EditorGUILayout.ObjectField(setup.rootGameObject,
+                            typeof(GameObject), true, RelativeWidth(3 / 5f));
+                    // TODO: Load everything from the avatar and fill the fields?
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Animator Controller:");
+                    setup.controller =
+                        (AnimatorController)EditorGUILayout.ObjectField(setup.controller,
+                            typeof(AnimatorController), true, RelativeWidth(3 / 5f));
+                    // TODO: load tracker data from animator
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Expression Parameters:");
+                    setup.expressionParameters =
+                        (VRCExpressionParameters)EditorGUILayout.ObjectField(setup.expressionParameters,
+                            typeof(VRCExpressionParameters), true, RelativeWidth(3 / 5f));
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Scale:");
+                    setup.scale = EditorGUILayout.FloatField(setup.scale, RelativeWidth(3 / 5f));
+                    if (setup.scale <= 0)
+                    {
+                        setup.scale = 1;
+                    }
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Asset folder:");
+                    using (new GUILayout.HorizontalScope(RelativeWidth(3 / 5f)))
+                    {
+                        String path = setup.assetFolder;
+                        path = EditorGUILayout.TextField(path);
+                        if (GUILayout.Button("Select"))
+                        {
+                            path = EditorUtility.OpenFolderPanel("Select asset folder", path, "").Replace(Application.dataPath, "Assets");
+                        }
+
+                        if (!path.StartsWith("Assets/"))
+                        {
+                            path = "Assets/Hackebein/ObjectTracking/Generated";
+                        }
+
+                        setup.assetFolder = path;
+                    }
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("UUID:");
+                    using (new GUILayout.HorizontalScope(RelativeWidth(3 / 5f)))
+                    {
+                        setup.uuid = EditorGUILayout.TextField(setup.uuid);
+                        if (GUILayout.Button("Generate") || setup.uuid.Length == 0)
+                        {
+                            setup.uuid = Guid.NewGuid().ToString();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                float avatarEyeHeight = 0;
+                VRCAvatarDescriptor avatarDescriptor = null;
+
+                if (setup.rootGameObject != null)
+                {
+                    avatarDescriptor = (VRCAvatarDescriptor)setup.rootGameObject.GetComponent(typeof(VRCAvatarDescriptor));
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Avatar:");
+                    avatarDescriptor = (VRCAvatarDescriptor)EditorGUILayout.ObjectField(avatarDescriptor,
+                        typeof(VRCAvatarDescriptor), true, RelativeWidth(3 / 5f));
+                }
+
+                setup.expressionParameters = null;
+                setup.controller = null;
                 if (avatarDescriptor == null)
                 {
-                    setup.rootObjectOfAvatar = null;
+                    setup.rootGameObject = null;
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.Label("");
+                        GUILayout.Label("No Avatar found!", RelativeWidth(3 / 5f));
+                    }
                 }
-            }
-            EditorGUILayout.EndHorizontal();
+                else
+                {
+                    setup.rootGameObject = avatarDescriptor.gameObject;
+                    setup.expressionParameters = avatarDescriptor.expressionParameters;
+                    VRCAvatarDescriptor.CustomAnimLayer[] customAnimLayers = avatarDescriptor.baseAnimationLayers;
+                    for (int i = 0; i < customAnimLayers.Length; i++)
+                    {
+                        if (customAnimLayers[i].type == VRCAvatarDescriptor.AnimLayerType.FX &&
+                            customAnimLayers[i].animatorController != null)
+                        {
+                            setup.controller = (AnimatorController)customAnimLayers[i].animatorController;
+                            break;
+                        }
+                    }
 
-            if (avatarDescriptor != null)
-            {
-                if (setup.fxController == null)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    GUILayout.Label("");
-                    GUILayout.Label("No FX Controller found!", RelativeWidth((float)3 / 5));
-                    EditorGUILayout.EndHorizontal();
-                }
-                if (setup.expressionParameters == null)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    GUILayout.Label("");
-                    GUILayout.Label("No Expression Parameter List found!", RelativeWidth((float)3 / 5));
-                    EditorGUILayout.EndHorizontal();
-                }
-                if (avatarDescriptor)
-                {
+                    if (setup.controller == null)
+                    {
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("");
+                            GUILayout.Label("No FX Controller found!", RelativeWidth(3 / 5f));
+                        }
+                    }
+
+                    if (setup.expressionParameters == null)
+                    {
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("");
+                            GUILayout.Label("No Expression Parameter List found!", RelativeWidth(3 / 5f));
+                        }
+                    }
+
                     avatarEyeHeight = avatarDescriptor.ViewPosition.y;
                 }
-            }
-            else
-            {
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("");
-                GUILayout.Label("No Avatar found!", RelativeWidth((float)3 / 5));
-                EditorGUILayout.EndHorizontal();
-            }
 
-            float? scale = GetScaleFactorFromAvatar(setup.rootObjectOfAvatar);
-            if (scale == null && avatarEyeHeight > 0)
-            {
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("Avatar eye height");
-                GUILayout.Label(avatarEyeHeight + "m", RelativeWidth((float)3 / 5));
-                EditorGUILayout.EndHorizontal();
-                
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("Real eye height (in m)");
-                // TODO: measure with HMD over OpenVR?
-                realEyeHeight = EditorGUILayout.FloatField(realEyeHeight, RelativeWidth((float)3 / 5));
-                EditorGUILayout.EndHorizontal();
-                if (realEyeHeight > 0)
+                if (avatarEyeHeight > 0)
                 {
-                    scale = avatarEyeHeight / realEyeHeight;
-                }
-            }
-            
-            if (scale != null)
-            {
-                setup.scale = (float)scale;
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("Eye height ratio");
-                GUILayout.Label(setup.scale.ToString("F4") + "x", RelativeWidth((float)3 / 5));
-                EditorGUILayout.EndHorizontal();
-            }
-            
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.Label("Tracker serial number");
-            // TODO: get tracker serial number from OpenVR
-            setup.trackerSerialNumber = GUILayout.TextField(setup.trackerSerialNumber, RelativeWidth((float)3 / 5));
-            if (setup.trackerSerialNumber.Length == 0)
-            {
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("");
-                GUILayout.Label("invalid name", RelativeWidth((float)3 / 5));
-                EditorGUILayout.EndHorizontal();
-            }
-
-            EditorGUILayout.EndHorizontal();
-
-            if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-            {
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Label("Asset folder");
-                // TODO: improve asset folder selection
-                GUILayout.Label(setup.assetFolder, RelativeWidth((float)2 / 5));
-                if (GUILayout.Button("Select", RelativeWidth((float)1 / 5)))
-                {
-                    setup.assetFolder = EditorUtility.OpenFolderPanel("Select asset folder", setup.assetFolder, "");
-                }
-                EditorGUILayout.EndHorizontal();
-                if (setup.assetFolder.Length == 0)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    GUILayout.Label("");
-                    GUILayout.Label("invalid path", RelativeWidth((float)3 / 5));
-                    EditorGUILayout.EndHorizontal();
-                }
-            }
-
-            EditorGUILayout.Space();
-
-            if (((ObjectTrackingSetup.Modes.Advanced | ObjectTrackingSetup.Modes.Expert) & setup.mode) != 0)
-            {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Position", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Bits:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Min (in m):", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Max (in m):", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("X:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                setup.bitsPX = RangeNumberInputField(setup.bitsPX, 0, 32, RelativeWidth((float)1 / 5));
-                setup.bitsPX = SliderNumberInputField(setup.bitsPX, 0, 32, RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if (setup.bitsPX == 0)
-                {
-                    GUI.enabled = false;
-                }
-
-                setup.minPX = EditorGUILayout.IntField(setup.minPX, RelativeWidth((float)1 / 5));
-                GUI.enabled = true;
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if (setup.bitsPX == 0)
-                {
-                    GUI.enabled = false;
-                }
-
-                setup.maxPX = EditorGUILayout.IntField(setup.maxPX, RelativeWidth((float)1 / 5));
-                GUI.enabled = true;
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                LabelAccuracy(setup.maxPX - setup.minPX, setup.bitsPX, "m", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Y:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                setup.bitsPY = RangeNumberInputField(setup.bitsPY, 0, 32, RelativeWidth((float)1 / 5));
-                setup.bitsPY = SliderNumberInputField(setup.bitsPY, 0, 32, RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if (setup.bitsPY == 0)
-                {
-                    GUI.enabled = false;
-                }
-
-                setup.minPY = EditorGUILayout.IntField(setup.minPY, RelativeWidth((float)1 / 5));
-                GUI.enabled = true;
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if (setup.bitsPY == 0)
-                {
-                    GUI.enabled = false;
-                }
-
-                setup.maxPY = EditorGUILayout.IntField(setup.maxPY, RelativeWidth((float)1 / 5));
-                GUI.enabled = true;
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                LabelAccuracy(setup.maxPY - setup.minPY, setup.bitsPY, "m", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Z:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                setup.bitsPZ = RangeNumberInputField(setup.bitsPZ, 0, 32, RelativeWidth((float)1 / 5));
-                setup.bitsPZ = SliderNumberInputField(setup.bitsPZ, 0, 32, RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if (setup.bitsPZ == 0)
-                {
-                    GUI.enabled = false;
-                }
-
-                setup.minPZ = EditorGUILayout.IntField(setup.minPZ, RelativeWidth((float)1 / 5));
-                GUI.enabled = true;
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if (setup.bitsPZ == 0)
-                {
-                    GUI.enabled = false;
-                }
-
-                setup.maxPZ = EditorGUILayout.IntField(setup.maxPZ, RelativeWidth((float)1 / 5));
-                GUI.enabled = true;
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                LabelAccuracy(setup.maxPZ - setup.minPZ, setup.bitsPZ, "m", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.Space();
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Rotation", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Bits:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-                {
-                    GUILayout.Label("Min (in °):", RelativeWidth((float)1 / 5));
-                }
-                else
-                {
-                    GUILayout.Label("", RelativeWidth((float)1 / 5));
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-                {
-                    GUILayout.Label("Max (in °):", RelativeWidth((float)1 / 5));
-                }
-                else
-                {
-                    GUILayout.Label("", RelativeWidth((float)1 / 5));
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("X:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                setup.bitsRX = RangeNumberInputField(setup.bitsRX, 0, 32, RelativeWidth((float)1 / 5));
-                setup.bitsRX = SliderNumberInputField(setup.bitsRX, 0, 32, RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-                {
-                    if (setup.bitsRX == 0)
+                    using (new GUILayout.HorizontalScope())
                     {
-                        GUI.enabled = false;
+                        GUILayout.Label("Avatar eye height");
+                        GUILayout.Label(avatarEyeHeight + "m", RelativeWidth(3 / 5f));
                     }
 
-                    setup.minRX = EditorGUILayout.IntField(setup.minRX, RelativeWidth((float)1 / 5));
-                    GUI.enabled = true;
-                }
-                else
-                {
-                    GUILayout.Label("", RelativeWidth((float)1 / 5));
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-                {
-                    if (setup.bitsRX == 0)
+                    using (new GUILayout.HorizontalScope())
                     {
-                        GUI.enabled = false;
+                        GUILayout.Label("Real eye height (in m)");
+                        // TODO: measure with HMD over OpenVR?
+                        _realEyeHeight = EditorGUILayout.FloatField(_realEyeHeight, RelativeWidth(3 / 5f));
                     }
 
-                    setup.maxRX = EditorGUILayout.IntField(setup.maxRX, RelativeWidth((float)1 / 5));
-                    GUI.enabled = true;
-                }
-                else
-                {
-                    GUILayout.Label("", RelativeWidth((float)1 / 5));
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                LabelAccuracy(setup.maxRX - setup.minRX, setup.bitsRX, "°", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Y:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                setup.bitsRY = RangeNumberInputField(setup.bitsRY, 0, 32, RelativeWidth((float)1 / 5));
-                setup.bitsRY = SliderNumberInputField(setup.bitsRY, 0, 32, RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-                {
-                    if (setup.bitsRY == 0)
+                    if (_realEyeHeight > 0)
                     {
-                        GUI.enabled = false;
-                    }
-
-                    setup.minRY = EditorGUILayout.IntField(setup.minRY, RelativeWidth((float)1 / 5));
-                    GUI.enabled = true;
-                }
-                else
-                {
-                    GUILayout.Label("", RelativeWidth((float)1 / 5));
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-                {
-                    if (setup.bitsRY == 0)
-                    {
-                        GUI.enabled = false;
-                    }
-
-                    setup.maxRY = EditorGUILayout.IntField(setup.maxRY, RelativeWidth((float)1 / 5));
-                    GUI.enabled = true;
-                }
-                else
-                {
-                    GUILayout.Label("", RelativeWidth((float)1 / 5));
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                LabelAccuracy(setup.maxRY - setup.minRY, setup.bitsRY, "°", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Z:", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                setup.bitsRZ = RangeNumberInputField(setup.bitsRZ, 0, 32, RelativeWidth((float)1 / 5));
-                setup.bitsRZ = SliderNumberInputField(setup.bitsRZ, 0, 32, RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-                {
-                    if (setup.bitsRZ == 0)
-                    {
-                        GUI.enabled = false;
-                    }
-
-                    setup.minRZ = EditorGUILayout.IntField(setup.minRZ, RelativeWidth((float)1 / 5));
-                    GUI.enabled = true;
-                }
-                else
-                {
-                    GUILayout.Label("", RelativeWidth((float)1 / 5));
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                if ((ObjectTrackingSetup.Modes.Expert & setup.mode) != 0)
-                {
-                    if (setup.bitsRZ == 0)
-                    {
-                        GUI.enabled = false;
-                    }
-
-                    setup.maxRZ = EditorGUILayout.IntField(setup.maxRZ, RelativeWidth((float)1 / 5));
-                    GUI.enabled = true;
-                }
-                else
-                {
-                    GUILayout.Label("", RelativeWidth((float)1 / 5));
-                }
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                LabelAccuracy(setup.maxRZ - setup.minRZ, setup.bitsRZ, "°", RelativeWidth((float)1 / 5));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-            }
-            else
-            {
-                int positionBits = setup.bitsPX;
-                int positionRange = setup.maxPX - setup.minPX;
-                int rotationBits = setup.bitsRX;
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Bits per axe:", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Range (in m):", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Position:", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                positionBits = RangeNumberInputField(positionBits, 0, 32, RelativeWidth((float)1 / 4));
-                positionBits = SliderNumberInputField(positionBits, 0, 32, RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                positionRange = Math.Abs(EditorGUILayout.IntField(positionRange, RelativeWidth((float)1 / 4)));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                LabelAccuracy(positionRange, positionBits, "m", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("Rotation:", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                rotationBits = RangeNumberInputField(rotationBits, 0, 32, RelativeWidth((float)1 / 4));
-                rotationBits = SliderNumberInputField(rotationBits, 0, 32, RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                GUILayout.Label("", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.BeginVertical();
-                LabelAccuracy(360, rotationBits, "°", RelativeWidth((float)1 / 4));
-                EditorGUILayout.EndVertical();
-                EditorGUILayout.EndHorizontal();
-
-                setup.bitsPX = setup.bitsPY = setup.bitsPZ = positionBits;
-                if (positionBits > 0)
-                {
-                    setup.bitsPY = positionBits - 1;
-                }
-
-                setup.minPX = setup.minPZ = positionRange / 2 * -1;
-                setup.minPY = 0;
-                setup.maxPX = setup.maxPY = setup.maxPZ = positionRange / 2;
-
-                setup.bitsRX = setup.bitsRY = setup.bitsRZ = rotationBits;
-                setup.minRX = setup.minRY = setup.minRZ = -180;
-                setup.maxRX = setup.maxRY = setup.maxRZ = 180;
-            }
-
-            EditorGUILayout.Space();
-
-            EditorGUILayout.BeginHorizontal();
-            // TODO: take removed parameters into account
-            GUILayout.Label("Costs", RelativeWidth((float)1 / 2));
-            int costs = setup.bitsPX + setup.bitsPY + setup.bitsPZ + setup.bitsRX + setup.bitsRY + setup.bitsRZ;
-            int used = 0;
-            if (setup.expressionParameters != null)
-            {
-                used = setup.expressionParameters.CalcTotalCost();
-            }
-
-            setup.expressionParameters = null;
-            setup.fxController = null;
-            if (avatarDescriptor)
-            {
-                setup.expressionParameters = avatarDescriptor.expressionParameters;
-                VRCAvatarDescriptor.CustomAnimLayer[] customAnimLayers = avatarDescriptor.baseAnimationLayers;
-                for (int i = 0; i < customAnimLayers.Length; i++)
-                {
-                    if (customAnimLayers[i].type == VRCAvatarDescriptor.AnimLayerType.FX &&
-                        customAnimLayers[i].animatorController != null)
-                    {
-                        setup.fxController = (AnimatorController)customAnimLayers[i].animatorController;
-                        break;
+                        setup.scale = avatarEyeHeight / _realEyeHeight;
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("Eye height ratio");
+                            GUILayout.Label(setup.scale.ToString("F4") + "x", RelativeWidth(3 / 5f));
+                        }
                     }
                 }
             }
 
-            GUILayout.Label(costs + " / " + (VRCExpressionParameters.MAX_PARAMETER_COST - used) + " bits", RelativeWidth((float)1 / 2));
-            EditorGUILayout.EndHorizontal();
+            foreach (SetupTracker tracker in setup.trackers)
+            {
+                using (new GUILayout.VerticalScope("box"))
+                {
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.Label("Serial Number:");
+                        tracker.name = EditorGUILayout.TextField(tracker.name, RelativeWidth(3 / 5f));
+                    }
+
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.Label("Tracker Type:");
+                        tracker.trackerType = (Utility.TrackerType)EditorGUILayout.Popup(tracker.trackerType.GetHashCode(), Utility.TrackerTypeText, RelativeWidth(3 / 5f));
+                    }
+
+                    if (setup.mode >= Utility.Modes.Advanced)
+                    {
+                        using (new GUILayout.HorizontalScope("box"))
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Position", RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Bits:", RelativeWidth((float)1 / 5));
+                                if (setup.mode == Utility.Modes.Expert)
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Min (in m):", RelativeWidth((float)1 / 5));
+                                if (setup.mode == Utility.Modes.Expert)
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Max (in m):", RelativeWidth((float)1 / 5));
+                                if (setup.mode == Utility.Modes.Expert)
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 5));
+                                if (setup.mode == Utility.Modes.Expert)
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                }
+                            }
+                        }
+
+                        using (new GUILayout.HorizontalScope("box"))
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("X:", RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                tracker.bitsRPX = RangeNumberInputField(tracker.bitsRPX, 0, 32, RelativeWidth((float)1 / 5));
+                                tracker.bitsRPX = SliderNumberInputField(tracker.bitsRPX, 0, 32, RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minLPX = EditorGUILayout.IntField(tracker.minLPX, RelativeWidth((float)1 / 5 / 2));
+                                    }
+
+                                    if (tracker.bitsRPX == 0)
+                                    {
+                                        GUI.enabled = false;
+                                    }
+
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minRPX = EditorGUILayout.IntField(tracker.minRPX, RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        tracker.minRPX = EditorGUILayout.IntField(tracker.minRPX, RelativeWidth((float)1 / 5));
+                                    }
+
+                                    GUI.enabled = true;
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxLPX = EditorGUILayout.IntField(tracker.maxLPX, RelativeWidth((float)1 / 5 / 2));
+                                    }
+
+                                    if (tracker.bitsRPX == 0)
+                                    {
+                                        GUI.enabled = false;
+                                    }
+
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxRPX = EditorGUILayout.IntField(tracker.maxRPX, RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        tracker.maxRPX = EditorGUILayout.IntField(tracker.maxRPX, RelativeWidth((float)1 / 5));
+                                    }
+
+                                    GUI.enabled = true;
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        LabelAccuracy(tracker.maxLPX - tracker.minLPX, 32, "m", RelativeWidth((float)1 / 5 / 2));
+                                        LabelAccuracy(tracker.maxRPX - tracker.minRPX, tracker.bitsRPX, "m", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        LabelAccuracy(tracker.maxRPX - tracker.minRPX, tracker.bitsRPX, "m", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+                        }
+
+                        using (new GUILayout.HorizontalScope("box"))
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Y:", RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                tracker.bitsRPY = RangeNumberInputField(tracker.bitsRPY, 0, 32, RelativeWidth((float)1 / 5));
+                                tracker.bitsRPY = SliderNumberInputField(tracker.bitsRPY, 0, 32, RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minLPY = EditorGUILayout.IntField(tracker.minLPY, RelativeWidth((float)1 / 5 / 2));
+                                    }
+
+                                    if (tracker.bitsRPY == 0)
+                                    {
+                                        GUI.enabled = false;
+                                    }
+
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minRPY = EditorGUILayout.IntField(tracker.minRPY, RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        tracker.minRPY = EditorGUILayout.IntField(tracker.minRPY, RelativeWidth((float)1 / 5));
+                                    }
+
+                                    GUI.enabled = true;
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxLPY = EditorGUILayout.IntField(tracker.maxLPY, RelativeWidth((float)1 / 5 / 2));
+                                    }
+
+                                    if (tracker.bitsRPY == 0)
+                                    {
+                                        GUI.enabled = false;
+                                    }
+
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxRPY = EditorGUILayout.IntField(tracker.maxRPY, RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        tracker.maxRPY = EditorGUILayout.IntField(tracker.maxRPY, RelativeWidth((float)1 / 5));
+                                    }
+
+                                    GUI.enabled = true;
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        LabelAccuracy(tracker.maxLPY - tracker.minLPY, 32, "m", RelativeWidth((float)1 / 5 / 2));
+                                        LabelAccuracy(tracker.maxRPY - tracker.minRPY, tracker.bitsRPY, "m", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        LabelAccuracy(tracker.maxRPY - tracker.minRPY, tracker.bitsRPY, "m", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+                        }
+
+                        using (new GUILayout.HorizontalScope("box"))
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Z:", RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                tracker.bitsRPZ = RangeNumberInputField(tracker.bitsRPZ, 0, 32, RelativeWidth((float)1 / 5));
+                                tracker.bitsRPZ = SliderNumberInputField(tracker.bitsRPZ, 0, 32, RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minLPZ = EditorGUILayout.IntField(tracker.minLPZ, RelativeWidth((float)1 / 5 / 2));
+                                    }
+
+                                    if (tracker.bitsRPZ == 0)
+                                    {
+                                        GUI.enabled = false;
+                                    }
+
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minRPZ = EditorGUILayout.IntField(tracker.minRPZ, RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        tracker.minRPZ = EditorGUILayout.IntField(tracker.minRPZ, RelativeWidth((float)1 / 5));
+                                    }
+
+                                    GUI.enabled = true;
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxLPZ = EditorGUILayout.IntField(tracker.maxLPZ, RelativeWidth((float)1 / 5 / 2));
+                                    }
+
+                                    if (tracker.bitsRPZ == 0)
+                                    {
+                                        GUI.enabled = false;
+                                    }
+
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxRPZ = EditorGUILayout.IntField(tracker.maxRPZ, RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        tracker.maxRPZ = EditorGUILayout.IntField(tracker.maxRPZ, RelativeWidth((float)1 / 5));
+                                    }
+
+                                    GUI.enabled = true;
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        LabelAccuracy(tracker.maxLPZ - tracker.minLPZ, 32, "m", RelativeWidth((float)1 / 5 / 2));
+                                        LabelAccuracy(tracker.maxRPZ - tracker.minRPZ, tracker.bitsRPZ, "m", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        LabelAccuracy(tracker.maxRPZ - tracker.minRPZ, tracker.bitsRPZ, "m", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+                        }
+
+                        EditorGUILayout.Space();
+
+                        using (new GUILayout.HorizontalScope("box"))
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Rotation", RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Bits:", RelativeWidth((float)1 / 5));
+                                if (setup.mode == Utility.Modes.Expert)
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                if (setup.mode == Utility.Modes.Expert)
+                                {
+                                    GUILayout.Label("Min (in °):", RelativeWidth((float)1 / 5));
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                }
+                                else
+                                {
+                                    GUILayout.Label("", RelativeWidth((float)1 / 5));
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                if (setup.mode == Utility.Modes.Expert)
+                                {
+                                    GUILayout.Label("Max (in °):", RelativeWidth((float)1 / 5));
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                }
+                                else
+                                {
+                                    GUILayout.Label("", RelativeWidth((float)1 / 5));
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 5));
+                                if (setup.mode == Utility.Modes.Expert)
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                }
+                            }
+                        }
+
+                        using (new GUILayout.HorizontalScope("box"))
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("X:", RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                tracker.bitsRRX = RangeNumberInputField(tracker.bitsRRX, 0, 32, RelativeWidth((float)1 / 5));
+                                tracker.bitsRRX = SliderNumberInputField(tracker.bitsRRX, 0, 32, RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minLRX = EditorGUILayout.IntField(tracker.minLRX, RelativeWidth((float)1 / 5 / 2));
+                                        if (tracker.bitsRRX == 0)
+                                        {
+                                            GUI.enabled = false;
+                                        }
+
+                                        tracker.minRRX = EditorGUILayout.IntField(tracker.minRRX, RelativeWidth((float)1 / 5 / 2));
+                                        GUI.enabled = true;
+                                    }
+                                    else
+                                    {
+                                        GUILayout.Label("", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxLRX = EditorGUILayout.IntField(tracker.maxLRX, RelativeWidth((float)1 / 5 / 2));
+                                        if (tracker.bitsRRX == 0)
+                                        {
+                                            GUI.enabled = false;
+                                        }
+
+                                        tracker.maxRRX = EditorGUILayout.IntField(tracker.maxRRX, RelativeWidth((float)1 / 5 / 2));
+                                        GUI.enabled = true;
+                                    }
+                                    else
+                                    {
+                                        GUILayout.Label("", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        LabelAccuracy(tracker.maxLRX - tracker.minLRX, 32, "°", RelativeWidth((float)1 / 5 / 2));
+                                        LabelAccuracy(tracker.maxRRX - tracker.minRRX, tracker.bitsRRX, "°", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        LabelAccuracy(tracker.maxRRX - tracker.minRRX, tracker.bitsRRX, "°", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+                        }
+
+                        using (new GUILayout.HorizontalScope("box"))
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Y:", RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                tracker.bitsRRY = RangeNumberInputField(tracker.bitsRRY, 0, 32, RelativeWidth((float)1 / 5));
+                                tracker.bitsRRY = SliderNumberInputField(tracker.bitsRRY, 0, 32, RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minLRY = EditorGUILayout.IntField(tracker.minLRY, RelativeWidth((float)1 / 5 / 2));
+                                        if (tracker.bitsRRY == 0)
+                                        {
+                                            GUI.enabled = false;
+                                        }
+
+                                        tracker.minRRY = EditorGUILayout.IntField(tracker.minRRY, RelativeWidth((float)1 / 5 / 2));
+                                        GUI.enabled = true;
+                                    }
+                                    else
+                                    {
+                                        GUILayout.Label("", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxLRY = EditorGUILayout.IntField(tracker.maxLRY, RelativeWidth((float)1 / 5 / 2));
+                                        if (tracker.bitsRRY == 0)
+                                        {
+                                            GUI.enabled = false;
+                                        }
+
+                                        tracker.maxRRY = EditorGUILayout.IntField(tracker.maxRRY, RelativeWidth((float)1 / 5 / 2));
+                                        GUI.enabled = true;
+                                    }
+                                    else
+                                    {
+                                        GUILayout.Label("", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        LabelAccuracy(tracker.maxLRY - tracker.minLRY, 32, "°", RelativeWidth((float)1 / 5 / 2));
+                                        LabelAccuracy(tracker.maxRRY - tracker.minRRY, tracker.bitsRRY, "°", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        LabelAccuracy(tracker.maxRRY - tracker.minRRY, tracker.bitsRRY, "°", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+                        }
+
+                        using (new GUILayout.HorizontalScope("box"))
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Z:", RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                tracker.bitsRRZ = RangeNumberInputField(tracker.bitsRRZ, 0, 32, RelativeWidth((float)1 / 5));
+                                tracker.bitsRRZ = SliderNumberInputField(tracker.bitsRRZ, 0, 32, RelativeWidth((float)1 / 5));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.minLRZ = EditorGUILayout.IntField(tracker.minLRZ, RelativeWidth((float)1 / 5 / 2));
+                                        if (tracker.bitsRRZ == 0)
+                                        {
+                                            GUI.enabled = false;
+                                        }
+
+                                        tracker.minRRZ = EditorGUILayout.IntField(tracker.minRRZ, RelativeWidth((float)1 / 5 / 2));
+                                        GUI.enabled = true;
+                                    }
+                                    else
+                                    {
+                                        GUILayout.Label("", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        tracker.maxLRZ = EditorGUILayout.IntField(tracker.maxLRZ, RelativeWidth((float)1 / 5 / 2));
+                                        if (tracker.bitsRRZ == 0)
+                                        {
+                                            GUI.enabled = false;
+                                        }
+
+                                        tracker.maxRRZ = EditorGUILayout.IntField(tracker.maxRRZ, RelativeWidth((float)1 / 5 / 2));
+                                        GUI.enabled = true;
+                                    }
+                                    else
+                                    {
+                                        GUILayout.Label("", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        LabelAccuracy(tracker.maxLRZ - tracker.minLRZ, 32, "°", RelativeWidth((float)1 / 5 / 2));
+                                        LabelAccuracy(tracker.maxRRZ - tracker.minRRZ, tracker.bitsRRZ, "°", RelativeWidth((float)1 / 5 / 2));
+                                    }
+                                    else
+                                    {
+                                        LabelAccuracy(tracker.maxRRZ - tracker.minRRZ, tracker.bitsRRZ, "°", RelativeWidth((float)1 / 5));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int positionBits = tracker.bitsRPX;
+                        int positionRange = tracker.maxRPX - tracker.minRPX;
+                        int rotationBits = tracker.bitsRRX;
+
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("", RelativeWidth((float)1 / 4));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Bits per axe:", RelativeWidth((float)1 / 4));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Range (in m):", RelativeWidth((float)1 / 4));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 4));
+                            }
+                        }
+
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Position:", RelativeWidth((float)1 / 4));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                positionBits = RangeNumberInputField(positionBits, 0, 32, RelativeWidth((float)1 / 4));
+                                positionBits = SliderNumberInputField(positionBits, 0, 32, RelativeWidth((float)1 / 4));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                positionRange = Math.Abs(EditorGUILayout.IntField(positionRange, RelativeWidth((float)1 / 4)));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                LabelAccuracy(positionRange, positionBits, "m", RelativeWidth((float)1 / 4));
+                            }
+                        }
+
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Rotation:", RelativeWidth((float)1 / 4));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                rotationBits = RangeNumberInputField(rotationBits, 0, 32, RelativeWidth((float)1 / 4));
+                                rotationBits = SliderNumberInputField(rotationBits, 0, 32, RelativeWidth((float)1 / 4));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("", RelativeWidth((float)1 / 4));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                LabelAccuracy(360, rotationBits, "°", RelativeWidth((float)1 / 4));
+                            }
+                        }
+
+                        tracker.bitsRPX = tracker.bitsRPY = tracker.bitsRPZ = positionBits;
+                        if (positionBits > 0)
+                        {
+                            tracker.bitsRPY = positionBits - 1;
+                        }
+
+                        tracker.minRPX = tracker.minRPZ = positionRange / 2 * -1;
+                        tracker.minRPY = 0;
+                        tracker.maxRPX = tracker.maxRPY = tracker.maxRPZ = positionRange / 2;
+
+                        tracker.bitsRRX = tracker.bitsRRY = tracker.bitsRRZ = rotationBits;
+                    }
+
+
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("Remove '" + tracker.name + "'"))
+                        {
+                            setup.RemoveTracker(setup.trackers.IndexOf(tracker));
+                            break;
+                        }
+                    }
+                }
+            }
+
             using (new GUILayout.HorizontalScope())
             {
-                // TODO: take removed parameters into account
+                if (GUILayout.Button("Add Tracker"))
+                {
+                    setup.AddTracker();
+                }
+            }
+
+            using (new GUILayout.HorizontalScope())
+            {
                 GUILayout.Label("Costs", RelativeWidth((float)1 / 2));
-                GUILayout.Label(setup.bitsRX + setup.bitsRY + setup.bitsRZ + setup.bitsPX + setup.bitsPY + setup.bitsPZ + " / " + (256 - setup.expressionParameters.parameters.Length) + " parameters", RelativeWidth((float)1 / 2));
+                using (new GUILayout.VerticalScope())
+                {
+                    GUILayout.Label(GenerateCostsString("bits", setup.GetExpectedExpressionParameterCosts(), setup.GetUsedExpressionParameterCosts(), setup.GetUsedTotalExpressionParameterCosts(), Setup.GetMaxExpressionParameterCosts()));
+                    GUILayout.Label(GenerateCostsString("parameters", setup.CountExpectedExpressionParameters(), setup.CountUsedExpressionParameters(), setup.CountUsedTotalExpressionParameters(), Setup.CountMaxExpressionParameters()));
+                }
             }
 
             EditorGUILayout.Space();
 
-            EditorGUILayout.BeginHorizontal();
-            // TODO: better check than `setup.assetFolder.Length == 0`
-            if (setup.rootObjectOfAvatar == null || setup.fxController == null || setup.expressionParameters == null || setup.trackerSerialNumber.Length == 0 || setup.assetFolder.Length == 0 || costs > VRCExpressionParameters.MAX_PARAMETER_COST - setup.expressionParameters.CalcTotalCost() || setup.expressionParameters.parameters.Length + setup.bitsRX + setup.bitsRY + setup.bitsRZ + setup.bitsPX + setup.bitsPY + setup.bitsPZ > 256 || scale == null)
+            bool isTrackersValid = setup.trackers.Count != 0;
+            string[] trackerNames = new string[setup.trackers.Count];
+            foreach (SetupTracker tracker in setup.trackers)
             {
-                GUI.enabled = false;
+                string name = tracker.name;
+                if (name.Length == 0 || Array.Exists(trackerNames, trackerName => trackerName == name))
+                {
+                    isTrackersValid = false;
+                    break;
+                }
+
+                trackerNames[setup.trackers.IndexOf(tracker)] = name;
             }
 
-            if (GUILayout.Button("(Re)create"))
+            bool isParameterCostsViable = Utility.IsCostViable(setup.GetExpectedExpressionParameterCosts(), setup.GetUsedExpressionParameterCosts(), setup.GetUsedTotalExpressionParameterCosts(), Setup.GetMaxExpressionParameterCosts());
+            bool isParametersViable = Utility.IsCostViable(setup.CountExpectedExpressionParameters(), setup.CountUsedExpressionParameters(), setup.CountUsedTotalExpressionParameters(), Setup.CountMaxExpressionParameters());
+            bool isCreateable = true;
+            using (new GUILayout.VerticalScope())
             {
-                ((ObjectTrackingSetup)target).ValidateAndCreate();
+                if (setup.rootGameObject == null)
+                {
+                    isCreateable = false;
+                    GUILayout.Label("No root GameObject selected!", RelativeWidth((float)1 / 2));
+                }
+
+                if (setup.controller == null)
+                {
+                    isCreateable = false;
+                    GUILayout.Label("No Animator Controller selected!", RelativeWidth((float)1 / 2));
+                }
+
+                if (setup.expressionParameters == null)
+                {
+                    isCreateable = false;
+                    GUILayout.Label("No Expression Parameter List selected!", RelativeWidth((float)1 / 2));
+                }
+
+                if (!isParameterCostsViable)
+                {
+                    isCreateable = false;
+                    GUILayout.Label("Expression Parameter Costs are too high!", RelativeWidth((float)1 / 2));
+                }
+
+                if (!isParametersViable)
+                {
+                    isCreateable = false;
+                    GUILayout.Label("Expression Parameter Count is too high!", RelativeWidth((float)1 / 2));
+                }
+
+                if (!isTrackersValid)
+                {
+                    isCreateable = false;
+                    GUILayout.Label("You have no Tracker or your Tracker names are not unique!", RelativeWidth((float)1 / 2));
+                }
             }
 
-            GUI.enabled = true;
-            if (setup.rootObjectOfAvatar == null || setup.fxController == null || setup.expressionParameters == null ||
-                setup.trackerSerialNumber.Length == 0 || setup.assetFolder.Length == 0)
+            using (new GUILayout.HorizontalScope())
             {
-                GUI.enabled = false;
-            }
+                if (!isCreateable)
+                {
+                    GUI.enabled = false;
+                }
 
-            if (GUILayout.Button("Remove " + setup.trackerSerialNumber))
-            {
-                ((ObjectTrackingSetup)target).ValidateAndRemove();
-            }
+                if (GUILayout.Button(setup.IsInstalled() ? "Recreate" : "Create"))
+                {
+                    setup.Create();
+                }
 
-            GUI.enabled = true;
-            if (setup.rootObjectOfAvatar == null || setup.fxController == null || setup.expressionParameters == null ||
-                setup.assetFolder.Length == 0)
-            {
-                GUI.enabled = false;
-            }
+                GUI.enabled = true;
+                if ((setup.rootGameObject == null && setup.controller == null && setup.expressionParameters == null) || !setup.IsInstalled())
+                {
+                    GUI.enabled = false;
+                }
 
-            if (GUILayout.Button("Remove All"))
-            {
-                ((ObjectTrackingSetup)target).ValidateAndRemoveAll();
-            }
+                if (GUILayout.Button("Remove"))
+                {
+                    setup.Remove();
+                }
 
-            GUI.enabled = true;
-            EditorGUILayout.EndHorizontal();
+                GUI.enabled = true;
+            }
         }
     }
 }

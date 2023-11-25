@@ -1,7 +1,7 @@
 {
   "name": "dev.hackebein.object-tracking",
   "displayName": "VRChat Object Tracking Setup",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "VRChat Object Tracking automated Setup",
   "gitDependencies": {},
   "vpmDependencies": {
@@ -9,7 +9,8 @@
   },
   "author": {
     "name": "Hackebein",
-    "email": "hackebein@gmail.com"
+    "email": "hackebein@gmail.com",
+	"url": ""
   },
   "legacyFolders": {},
   "legacyFiles": {},

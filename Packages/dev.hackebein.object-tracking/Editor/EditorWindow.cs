@@ -9,13 +9,12 @@ namespace Hackebein.ObjectTracking
 {
     public class ObjectTrackingEditorWindow : EditorWindow
     {
-        [MenuItem("Tools/Object Tracking Setup")]
+        [MenuItem("Tools/Hackebein/Object Tracking Setup")]
         public static void GenerateGameObjectAndSelect()
         {
-            GameObject gameObject = new GameObject();
-            gameObject.name = "Object Tracking Setup";
-            gameObject.AddComponent<ObjectTrackingSetup>();
+            GameObject gameObject = Utility.FindOrCreateEmptyGameObject("Object Tracking Setup");
             gameObject.tag = "EditorOnly";
+            gameObject.AddComponent<Setup>();
             Selection.activeGameObject = gameObject;
 
             // try to find the avatar
@@ -23,7 +22,7 @@ namespace Hackebein.ObjectTracking
             {
                 GameObject avatar = FindObjectsOfType<GameObject>()
                     .SingleOrDefault(obj => obj.GetComponent(typeof(VRCAvatarDescriptor)));
-                gameObject.GetComponent<ObjectTrackingSetup>().rootObjectOfAvatar = avatar;
+                gameObject.GetComponent<Setup>().rootGameObject = avatar;
             }
             catch (Exception)
             {
