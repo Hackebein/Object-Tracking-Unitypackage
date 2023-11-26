@@ -41,31 +41,36 @@ namespace Hackebein.ObjectTracking
 
         private void LabelAccuracy(int range, int bits, string suffix, GUILayoutOption[] guiLayoutOption)
         {
-            long accuracy = range / (1L << bits);
-            if (bits == 32 && range == 42)
+            using (new GUILayout.VerticalScope())
             {
-                // ;)
-                GUILayout.Label("^,....^ remember i love you", guiLayoutOption);
-            }
-            else if (suffix == "m" && accuracy < 0.001)
-            {
-                GUILayout.Label("<0.001" + suffix, guiLayoutOption);
-            }
-            else if (suffix == "°" && accuracy < 0.1)
-            {
-                GUILayout.Label("<0.1" + suffix, guiLayoutOption);
-            }
-            else if (bits > 0 && suffix == "m")
-            {
-                GUILayout.Label(accuracy.ToString("F4") + suffix, guiLayoutOption);
-            }
-            else if (bits > 0 && suffix == "°")
-            {
-                GUILayout.Label(accuracy.ToString("F2") + suffix, guiLayoutOption);
-            }
-            else
-            {
-                GUILayout.Label("n/A", guiLayoutOption);
+                float accuracy = (float)range / (1L << bits);
+                if (bits == 32 && range == 42)
+                {
+                    // ;)
+                    GUILayout.Label("^,....^ remember i love you", guiLayoutOption);
+                }
+                else if (suffix == "m" && accuracy < 0.01)
+                {
+                    GUILayout.Label("<0.01" + suffix, guiLayoutOption);
+                    GUILayout.Label("<0.4in", guiLayoutOption);
+                }
+                else if (suffix == "°" && accuracy < 0.1)
+                {
+                    GUILayout.Label("<0.1" + suffix, guiLayoutOption);
+                }
+                else if (bits > 0 && suffix == "m")
+                {
+                    GUILayout.Label(accuracy.ToString("F3") + suffix, guiLayoutOption);
+                    GUILayout.Label((accuracy / 0.0254).ToString("F3") + "in", guiLayoutOption);
+                }
+                else if (bits > 0 && suffix == "°")
+                {
+                    GUILayout.Label(accuracy.ToString("F2") + suffix, guiLayoutOption);
+                }
+                else
+                {
+                    GUILayout.Label("n/A", guiLayoutOption);
+                }
             }
         }
 
