@@ -184,7 +184,7 @@ namespace Hackebein.ObjectTracking
                 name = "Local",
                 writeDefaultValues = false,
                 timeParameterActive = true,
-                timeParameter = "ObjectTracking/" + name + "/" + axe.Key[0] + "-Raw"
+                timeParameter = "ObjectTracking/" + name + "/L" + axe.Key[0]
             };
 
             ChildAnimatorState stateLocalChild = new ChildAnimatorState
@@ -199,7 +199,7 @@ namespace Hackebein.ObjectTracking
                 name = "Remote",
                 writeDefaultValues = false,
                 timeParameterActive = true,
-                timeParameter = "ObjectTracking/" + name + "/" + axe.Key[0]
+                timeParameter = "ObjectTracking/" + name + "/R" + axe.Key[0]
             };
 
             ChildAnimatorState stateRemoteChild = new ChildAnimatorState
@@ -245,9 +245,9 @@ namespace Hackebein.ObjectTracking
 
             // Clip
             stateLocal.motion =
-                Utility.CreateClip(name + "/" + axe.Key[0] + "_local", axe.Key[1], axe.Key[2], axe.Value[1], axe.Value[2], assetFolder);
+                Utility.CreateClip(name + "/L" + axe.Key[0], axe.Key[1], axe.Key[2], axe.Value[1], axe.Value[2], assetFolder);
             stateRemote.motion =
-                Utility.CreateClip(name + "/" + axe.Key[0] + "_remote", axe.Key[1], axe.Key[2], axe.Value[3], axe.Value[4], assetFolder);
+                Utility.CreateClip(name + "/R" + axe.Key[0], axe.Key[1], axe.Key[2], axe.Value[3], axe.Value[4], assetFolder);
 
             Utility.AddSubAssetsToDatabase(layer, controller);
         }
@@ -257,20 +257,21 @@ namespace Hackebein.ObjectTracking
             foreach (KeyValuePair<string[], int[]> pair in Axes())
             {
                 int accuracy = pair.Value[0];
+                // TODO: simplification if accuracy is 8: skip
                 int accuracyBytes = accuracy / 8;
                 int accuracyBits = accuracy - (accuracyBytes * 8);
                 for (int i = 0; i < accuracyBits; i++)
                 {
                     parameterDriverParameters.Add(Utility.ParameterDriverParameterBoolToFloat(
-                        "ObjectTracking/" + name + "/" + pair.Key[0] + "-Bit" + i,
-                        "ObjectTracking/" + name + "/" + pair.Key[0] + "-Bit" + i + "-Float"));
+                        "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i,
+                        "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i + "-Float"));
                 }
 
                 for (int i = 0; i < accuracyBytes; i++)
                 {
                     parameterDriverParameters.Add(Utility.ParameterDriverParameterIntToFloat(
-                        "ObjectTracking/" + name + "/" + pair.Key[0] + "-Byte" + i,
-                        "ObjectTracking/" + name + "/" + pair.Key[0] + "-Byte" + i + "-Float"));
+                        "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Byte" + i,
+                        "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Byte" + i + "-Float"));
                 }
             }
         }
@@ -280,22 +281,23 @@ namespace Hackebein.ObjectTracking
             foreach (KeyValuePair<string[], int[]> axe in Axes())
             {
                 int accuracy = axe.Value[0];
+                // TODO: simplification if accuracy is 8: skip
                 int accuracyBytes = accuracy / 8;
                 int accuracyBits = accuracy - (accuracyBytes * 8);
                 int offset = 0;
                 for (int i = 0; i < accuracyBytes; i++)
                 {
                     float multiplicator = Utility.GetAAPMultiplicator(accuracy, offset, 8);
-                    motions.Add("ObjectTracking/" + name + "/" + axe.Key[0] + "-Byte" + i + "-Float",
-                        Utility.CreateClip(name + "/" + axe.Key[0] + "-Byte" + i, "", "ObjectTracking/" + name + "/" + axe.Key[0], multiplicator, multiplicator, assetFolder));
+                    motions.Add("ObjectTracking/" + name + "/R" + axe.Key[0] + "-Byte" + i + "-Float",
+                        Utility.CreateClip(name + "/R" + axe.Key[0] + "-Byte" + i, "", "ObjectTracking/" + name + "/R" + axe.Key[0], multiplicator, multiplicator, assetFolder));
                     offset += 8;
                 }
 
                 for (int i = 0; i < accuracyBits; i++)
                 {
                     float multiplicator = Utility.GetAAPMultiplicator(accuracy, offset);
-                    motions.Add("ObjectTracking/" + name + "/" + axe.Key[0] + "-Bit" + i + "-Float",
-                        Utility.CreateClip(name + "/" + axe.Key[0] + "-Bit" + i, "", "ObjectTracking/" + name + "/" + axe.Key[0], multiplicator, multiplicator, assetFolder));
+                    motions.Add("ObjectTracking/" + name + "/R" + axe.Key[0] + "-Bit" + i + "-Float",
+                        Utility.CreateClip(name + "/R" + axe.Key[0] + "-Bit" + i, "", "ObjectTracking/" + name + "/R" + axe.Key[0], multiplicator, multiplicator, assetFolder));
                     offset += 1;
                 }
             }
@@ -324,20 +326,23 @@ namespace Hackebein.ObjectTracking
             foreach (KeyValuePair<string[], int[]> pair in Axes())
             {
                 int accuracy = pair.Value[0];
+                // TODO: simplification if accuracy is 8: skip both for-loops
                 int accuracyBytes = accuracy / 8;
                 int accuracyBits = accuracy - (accuracyBytes * 8);
-                controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key[0]);
-                controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key[0] + "-Raw");
+                controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/L" + pair.Key[0], .5f);
+                controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0], .5f);
                 for (int i = 0; i < accuracyBits; i++)
                 {
-                    controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key[0] + "-Bit" + i);
-                    controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key[0] + "-Bit" + i + "-Float");
+                    // TODO: set default value to meet the middle of the range
+                    controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i);
+                    controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i + "-Float");
                 }
 
                 for (int i = 0; i < accuracyBytes; i++)
                 {
-                    controller = Utility.CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key[0] + "-Byte" + i);
-                    controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/" + pair.Key[0] + "-Byte" + i + "-Float");
+                    // TODO: set default value to meet the middle of the range
+                    controller = Utility.CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Byte" + i);
+                    controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Byte" + i + "-Float");
                 }
             }
         }
@@ -347,17 +352,20 @@ namespace Hackebein.ObjectTracking
             foreach (KeyValuePair<string[], int[]> pair in Axes())
             {
                 int accuracy = pair.Value[0];
+                // TODO: simplification if accuracy is 8: skip both for-loops and do a synced parameter like local instead
                 int accuracyBytes = accuracy / 8;
                 int accuracyBits = accuracy - (accuracyBytes * 8);
-                expressionParameters = Utility.CreateFloatParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/" + pair.Key[0] + "-Raw", 0.0f, false, false);
+                expressionParameters = Utility.CreateFloatParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/L" + pair.Key[0], 0.5f, false, false);
                 for (int i = 0; i < accuracyBits; i++)
                 {
-                    expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/" + pair.Key[0] + "-Bit" + i, false, false, true);
+                    // TODO: set default value to meet the middle of the range
+                    expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i, false, false, true);
                 }
 
                 for (int i = 0; i < accuracyBytes; i++)
                 {
-                    expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/" + pair.Key[0] + "-Byte" + i, 0, false, true);
+                    // TODO: set default value to meet the middle of the range
+                    expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Byte" + i, 0, false, true);
                 }
             }
         }
