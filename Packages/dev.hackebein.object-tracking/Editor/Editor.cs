@@ -264,6 +264,21 @@ namespace Hackebein.ObjectTracking
                         tracker.trackerType = (Utility.TrackerType)EditorGUILayout.Popup(tracker.trackerType.GetHashCode(), Utility.TrackerTypeText, RelativeWidth(3 / 5f));
                     }
 
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.Label("Prefab:");
+                        // TODO: add prefabs for easy installation
+                        EditorGUILayout.Popup(0, new string[]
+                        {
+                            "None",
+                            "Hackebein - X-Pole Pole Silkii mount (coming soon)",
+                            "Hackebein - X-Pole Aerial Hoop mount (coming soon)",
+                            "Jangxx - Bottle Mount (coming soon)", // https://www.thingiverse.com/thing:4732305
+                        }, RelativeWidth(3 / 5f));
+                        
+                        // TODO: show extra information about the prefab (License, Author, URL, etc.)
+                    }
+
                     if (setup.mode >= Utility.Modes.Advanced)
                     {
                         using (new GUILayout.HorizontalScope("box"))
