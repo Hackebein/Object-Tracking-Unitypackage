@@ -278,6 +278,20 @@ namespace Hackebein.ObjectTracking
                         
                         // TODO: show extra information about the prefab (License, Author, URL, etc.)
                     }
+                    if (setup.mode == Utility.Modes.Expert)
+                    {
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("Data Transmit Type:");
+                            // TODO: Implement Data Transmit Types
+                            EditorGUILayout.Popup(0, new string[]
+                            {
+                                "Mixed (int8, bool)",
+                                "Native (float8) (coming soon)", // Force accuracy of 8 bits per axe
+                                "Native (bool) (coming soon)", // Force accuracy of 1 bit per axe
+                            }, RelativeWidth(3 / 5f));
+                        }
+                    }
 
                     if (setup.mode >= Utility.Modes.Advanced)
                     {
