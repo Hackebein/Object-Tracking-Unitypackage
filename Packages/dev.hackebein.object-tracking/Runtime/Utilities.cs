@@ -33,44 +33,43 @@ namespace Hackebein.ObjectTracking
         public enum TrackerType
         {
             None,
+            EZtrackSWAN,
             HtcVive10,
             HtcVive20,
             HtcVive30,
-            HtcViveWristTracker,
+            LogitechVRInkStylus,
+            ManusSteamVRProTracker,
             TundraLabsTundraTrackerScrew,
             TundraLabsTundraTrackerScrewRotated,
             TundraLabsTundraTrackerStrap,
-            ManusSteamVRProTracker,
-            LogitechVRInkStylus,
-            EZtrackSWAN,
         }
 
         public static readonly string[] TrackerTypeText =
         {
             "None",
-            "HTC VIVE 1.0",
-            "HTC VIVE 2.0",
-            "HTC VIVE 3.0",
-            "HTC VIVE Wrist Tracker",
-            "Tundra Labs Tundra Tracker (1\u22154\" Screw Mount)",
-            "Tundra Labs Tundra Tracker (1\u22154\" Screw Mount, rotated)",
-            "Tundra Labs Tundra Tracker (Strap Mount)",
-            "Logitech VR Ink Stylus",
-            "EZtrack SWAN",
+            "EZtrack - SWAN (coming soon)",
+            "HTC - VIVE 1.0",
+            "HTC - VIVE 2.0",
+            "HTC - VIVE 3.0",
+            "Logitech - VR Ink Stylus (coming soon)",
+            "Manus - SteamVR Pro Tracker (coming soon)",
+            "Tundra Labs - Tundra Tracker (1\u22154\" Screw Mount)",
+            "Tundra Labs - Tundra Tracker (1\u22154\" Screw Mount, rotated)",
+            "Tundra Labs - Tundra Tracker (Strap Mount) (coming soon)",
         };
 
         public static readonly String[] TrackerTypeGameObjects =
         {
             null, // None
+            null, // EZtrack SWAN
             "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 2.0.fbx",
             "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 2.0.fbx",
             "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 3.0.fbx",
-            null, // HTC VIVE Wrist Tracker
+            null, // Logitech VR Ink Stylus
+            null, // Manus SteamVR Pro Tracker
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw.fbx",
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw rotated.fbx",
             null, // Tundra Labs Tundra Tracker (Strap Mount)
-            null, // Logitech VR Ink Stylus
-            null, // EZtrack SWAN
         };
 
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
