@@ -22,6 +22,7 @@ namespace Hackebein.ObjectTracking
         public VRCExpressionParameters expressionParameters;
         public float scale = 1.0f;
         public List<SetupTracker> trackers = new List<SetupTracker>();
+        private AnimationClip ignoreClip;
 
         public void AddTracker()
         {
@@ -127,6 +128,9 @@ namespace Hackebein.ObjectTracking
         {
             // Cleanup
             Remove();
+            
+            // ignore animation
+            ignoreClip = Utility.CreateClip("ignore", "_ignore", "IsActive", 0, 0, assetFolder);
 
             // Parameters
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "IsLocal");
@@ -243,7 +247,7 @@ namespace Hackebein.ObjectTracking
             {
                 name = "Local",
                 writeDefaultValues = false,
-                motion = Utility.CreateClip("ignore Local", "_ignore", "IsActive", 0, 0, assetFolder)
+                motion = ignoreClip
             };
 
             List<VRCAvatarParameterDriver.Parameter> parameterDriverParametersLocal = new List<VRCAvatarParameterDriver.Parameter>
@@ -340,7 +344,7 @@ namespace Hackebein.ObjectTracking
             {
                 name = "Global Config",
                 writeDefaultValues = false,
-                motion = Utility.CreateClip("ignore Global", "_ignore", "IsActive", 0, 0, assetFolder)
+                motion = ignoreClip
             };
  
             VRCAvatarParameterDriver parameterDriverGlobal = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
@@ -370,7 +374,7 @@ namespace Hackebein.ObjectTracking
                 {
                     name = "Tracker Config " + tracker.name,
                     writeDefaultValues = false,
-                    motion = Utility.CreateClip("ignore " + tracker.name, "_ignore", "IsActive", 0, 0, assetFolder)
+                    motion = ignoreClip
                 };
 
                 VRCAvatarParameterDriver parameterDriverDevice = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
