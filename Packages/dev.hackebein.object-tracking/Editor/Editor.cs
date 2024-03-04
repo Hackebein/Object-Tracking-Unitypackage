@@ -49,14 +49,14 @@ namespace Hackebein.ObjectTracking
                     // ;)
                     GUILayout.Label("^,....^ remember i love you", guiLayoutOption);
                 }
-                else if (suffix == "m" && accuracy < 0.01)
+                else if (suffix == "m" && accuracy < 0.002)
                 {
-                    GUILayout.Label("<0.01" + suffix, guiLayoutOption);
-                    GUILayout.Label("<0.4in", guiLayoutOption);
+                    GUILayout.Label("<0.002" + suffix, guiLayoutOption);
+                    GUILayout.Label("<0.8in", guiLayoutOption);
                 }
-                else if (suffix == "°" && accuracy < 0.1)
+                else if (suffix == "°" && accuracy < 0.5)
                 {
-                    GUILayout.Label("<0.1" + suffix, guiLayoutOption);
+                    GUILayout.Label("<0.5" + suffix, guiLayoutOption);
                 }
                 else if (bits > 0 && suffix == "m")
                 {
@@ -139,8 +139,7 @@ namespace Hackebein.ObjectTracking
                         {
                             path = EditorUtility.OpenFolderPanel("Select asset folder", path, "").Replace(Application.dataPath, "Assets");
                         }
-
-                        if (!path.StartsWith("Assets/"))
+                        if (GUILayout.Button("Reset") || !path.StartsWith("Assets/"))
                         {
                             path = "Assets/Hackebein/ObjectTracking/Generated";
                         }
@@ -161,6 +160,17 @@ namespace Hackebein.ObjectTracking
                         }
                     }
                 }
+
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Oriantation Mode:");
+                    EditorGUILayout.Popup(1, new string[]
+                    {
+                        "Animation (coming soon)",
+                        "Constraint",
+                    }, RelativeWidth(3 / 5f));
+                }
+
             }
             else
             {
@@ -253,6 +263,8 @@ namespace Hackebein.ObjectTracking
                 }
             }
 
+            // TODO: support GoGoLoco and similar systems
+            // TODO: Multi configuration support
             foreach (SetupTracker tracker in setup.trackers)
             {
                 using (new GUILayout.VerticalScope("box"))
@@ -278,7 +290,6 @@ namespace Hackebein.ObjectTracking
                             "None",
                             "Hackebein - X-Pole Pole Silkii mount (coming soon)",
                             "Hackebein - X-Pole Aerial Hoop mount (coming soon)",
-                            "Jangxx - Bottle Mount (coming soon)", // https://www.thingiverse.com/thing:4732305
                         }, RelativeWidth(3 / 5f));
                         
                         // TODO: show extra information about the prefab (License, Author, URL, etc.)
@@ -294,6 +305,21 @@ namespace Hackebein.ObjectTracking
                                 "Mixed (int8, bool)",
                                 "Native (float8) (coming soon)", // Force accuracy of 8 bits per axe
                                 "Native (bool) (coming soon)", // Force accuracy of 1 bit per axe
+                            }, RelativeWidth(3 / 5f));
+                        }
+                    }
+                    if (setup.mode == Utility.Modes.Expert)
+                    {
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("Smoothing:");
+                            // TODO: Implement Smoothing Types
+                            EditorGUILayout.Popup(0, new string[]
+                            {
+                                "Exponential (VRC Phys Bone, PC only)",
+                                "Exponential (Animator) (coming soon)", // https://notes.sleightly.dev/Smoothing-Exponential-019e9e69f617451dabd8d64554e09671
+                                "Damped (Animator) (coming soon)", // https://notes.sleightly.dev/Smoothed-Float-Half-21fe757e52da4e589e2b30997f459f44
+                                "Linear (Animator) (coming soon)", // Assets/JelleScripts/Linear/Timing
                             }, RelativeWidth(3 / 5f));
                         }
                     }
@@ -368,6 +394,7 @@ namespace Hackebein.ObjectTracking
 
                             using (new GUILayout.VerticalScope())
                             {
+                                // TODO: add support for >32 bits
                                 tracker.bitsRPX = RangeNumberInputField(tracker.bitsRPX, 0, 32, RelativeWidth((float)1 / 5));
                                 tracker.bitsRPX = SliderNumberInputField(tracker.bitsRPX, 0, 32, RelativeWidth((float)1 / 5));
                             }
@@ -452,6 +479,7 @@ namespace Hackebein.ObjectTracking
 
                             using (new GUILayout.VerticalScope())
                             {
+                                // TODO: add support for >32 bits
                                 tracker.bitsRPY = RangeNumberInputField(tracker.bitsRPY, 0, 32, RelativeWidth((float)1 / 5));
                                 tracker.bitsRPY = SliderNumberInputField(tracker.bitsRPY, 0, 32, RelativeWidth((float)1 / 5));
                             }
@@ -536,6 +564,7 @@ namespace Hackebein.ObjectTracking
 
                             using (new GUILayout.VerticalScope())
                             {
+                                // TODO: add support for >32 bits
                                 tracker.bitsRPZ = RangeNumberInputField(tracker.bitsRPZ, 0, 32, RelativeWidth((float)1 / 5));
                                 tracker.bitsRPZ = SliderNumberInputField(tracker.bitsRPZ, 0, 32, RelativeWidth((float)1 / 5));
                             }
@@ -940,6 +969,7 @@ namespace Hackebein.ObjectTracking
 
                             using (new GUILayout.VerticalScope())
                             {
+                                // TODO: add support for >32 bits
                                 positionBits = RangeNumberInputField(positionBits, 0, 32, RelativeWidth((float)1 / 4));
                                 positionBits = SliderNumberInputField(positionBits, 0, 32, RelativeWidth((float)1 / 4));
                             }
@@ -1026,10 +1056,11 @@ namespace Hackebein.ObjectTracking
 
             bool isTrackersValid = setup.trackers.Count != 0;
             string[] trackerNames = new string[setup.trackers.Count];
+            string[] protectedNames = new string[]{"device", "index", "value", "global"};
             foreach (SetupTracker tracker in setup.trackers)
             {
                 string name = tracker.name;
-                if (name.Length == 0 || Array.Exists(trackerNames, trackerName => trackerName == name))
+                if (name.Length == 0 || Array.Exists(trackerNames, trackerName => trackerName == name) || Array.Exists(protectedNames, protectedName => protectedName == name))
                 {
                     isTrackersValid = false;
                     break;

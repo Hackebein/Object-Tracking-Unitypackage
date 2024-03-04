@@ -55,7 +55,7 @@ namespace Hackebein.ObjectTracking
             "Manus - SteamVR Pro Tracker (coming soon)",
             "Tundra Labs - Tundra Tracker (1\u22154\" Screw Mount)",
             "Tundra Labs - Tundra Tracker (1\u22154\" Screw Mount, rotated)",
-            "Tundra Labs - Tundra Tracker (Strap Mount) (coming soon)",
+            "Tundra Labs - Tundra Tracker (Strap Mount)",
         };
 
         public static readonly String[] TrackerTypeGameObjects =
@@ -69,9 +69,37 @@ namespace Hackebein.ObjectTracking
             null, // Manus SteamVR Pro Tracker
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw.fbx",
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw rotated.fbx",
-            null, // Tundra Labs Tundra Tracker (Strap Mount)
+            "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker strap.fbx",
         };
+/*
+        public static AnimatorControllerParameter CreateAnimatorParameter<T>(string name, T defaultValue)
+        {
+            AnimatorControllerParameter parameter = new AnimatorControllerParameter
+            {
+                name = name
+            };
 
+            switch (defaultValue)
+            {
+                case bool b:
+                    parameter.type = AnimatorControllerParameterType.Bool;
+                    parameter.defaultBool = b;
+                    break;
+                case float f:
+                    parameter.type = AnimatorControllerParameterType.Float;
+                    parameter.defaultFloat = f;
+                    break;
+                case int i:
+                    parameter.type = AnimatorControllerParameterType.Int;
+                    parameter.defaultInt = i;
+                    break;
+                default:
+                    throw new ArgumentException("Unsupported parameter type");
+            }
+
+            return parameter;
+        }
+*/
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
         {
             AnimatorControllerParameter parameter = new AnimatorControllerParameter
@@ -299,70 +327,129 @@ namespace Hackebein.ObjectTracking
 
             return parameterDriverParameter;
         }
-
-        public static AnimatorStateTransition CreateBoolTransition(string name, string variable, bool value, AnimatorState target)
-        {
-            Dictionary<string, bool> conditions = new Dictionary<string, bool> { { variable, value } };
-            return CreateBoolTransition(name, conditions, target);
-        }
-
-        public static AnimatorStateTransition CreateBoolTransition(string name, Dictionary<string, bool> conditions, AnimatorState target)
+        
+        private static AnimatorCondition[] CreateAnimatorCondition(Tuple<string, bool>[] boolConditions, Tuple<string, AnimatorConditionMode, int>[] intConditions, Tuple<string, AnimatorConditionMode, float>[] floatConditions)
         {
             AnimatorCondition[] animatorConditions = Array.Empty<AnimatorCondition>();
-            foreach (KeyValuePair<string, bool> pair in conditions)
+            foreach (Tuple<string, bool> pair in boolConditions)
             {
                 AnimatorCondition condition = new AnimatorCondition
                 {
-                    parameter = pair.Key,
-                    mode = pair.Value ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot
+                    parameter = pair.Item1,
+                    mode = pair.Item2 ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot
+                };
+
+                animatorConditions = animatorConditions.Append(condition).ToArray();
+            }
+            foreach (Tuple<string, AnimatorConditionMode, int> pair in intConditions)
+            {
+                AnimatorCondition condition = new AnimatorCondition
+                {
+                    parameter = pair.Item1,
+                    mode = pair.Item2,
+                    threshold = pair.Item3,
+                };
+
+                animatorConditions = animatorConditions.Append(condition).ToArray();
+            }
+            foreach (Tuple<string, AnimatorConditionMode, float> pair in floatConditions)
+            {
+                AnimatorCondition condition = new AnimatorCondition
+                {
+                    parameter = pair.Item1,
+                    mode = pair.Item2,
+                    threshold = pair.Item3,
                 };
 
                 animatorConditions = animatorConditions.Append(condition).ToArray();
             }
 
-            AnimatorStateTransition transition = new AnimatorStateTransition
+            return animatorConditions;
+        }
+
+        public static AnimatorStateTransition CreateTransition(string name, Tuple<string, bool>[] boolConditions, Tuple<string, AnimatorConditionMode, int>[] intConditions, Tuple<string, AnimatorConditionMode, float>[] floatConditions, AnimatorState target)
+        {
+            return new AnimatorStateTransition
             {
                 name = name,
-                conditions = animatorConditions,
+                conditions = CreateAnimatorCondition(boolConditions, intConditions, floatConditions),
                 destinationState = target,
                 duration = 0,
                 hasExitTime = false,
                 exitTime = 0
             };
-
-            return transition;
         }
 
-        public static AnimatorTransition CreateEntryBoolTransition(string name, string variable, bool value, AnimatorState target)
+        public static AnimatorTransition CreateEntryTransition(string name, Tuple<string, bool>[] boolConditions, Tuple<string, AnimatorConditionMode, int>[] intConditions, Tuple<string, AnimatorConditionMode, float>[] floatConditions, AnimatorState target)
         {
-            Dictionary<string, bool> conditions = new Dictionary<string, bool> { { variable, value } };
-            return CreateEntryBoolTransition(name, conditions, target);
-        }
-
-        public static AnimatorTransition CreateEntryBoolTransition(string name, Dictionary<string, bool> conditions, AnimatorState target)
-        {
-            AnimatorCondition[] animatorConditions = Array.Empty<AnimatorCondition>();
-            foreach (KeyValuePair<string, bool> pair in conditions)
-            {
-                AnimatorCondition condition = new AnimatorCondition
-                {
-                    parameter = pair.Key,
-                    mode = pair.Value ? AnimatorConditionMode.If : AnimatorConditionMode.IfNot
-                };
-
-                animatorConditions = animatorConditions.Append(condition).ToArray();
-            }
-
-            AnimatorTransition transition = new AnimatorTransition
+            return new AnimatorTransition 
             {
                 name = name,
-                conditions = animatorConditions,
+                conditions = CreateAnimatorCondition(boolConditions, intConditions, floatConditions),
                 destinationState = target
             };
-
-            return transition;
         }
 
+        public static AnimatorStateTransition CreateTransition(string name, Tuple<string, bool>[] boolConditions, AnimatorState target)
+        {
+            return CreateTransition(name, boolConditions, Array.Empty<Tuple<string, AnimatorConditionMode, int>>(), Array.Empty<Tuple<string, AnimatorConditionMode, float>>(), target);
+        }
+
+        public static AnimatorStateTransition CreateTransition(string name, Tuple<string, AnimatorConditionMode, int>[] intConditions, AnimatorState target)
+        {
+            return CreateTransition(name, Array.Empty<Tuple<string, bool>>(), intConditions, Array.Empty<Tuple<string, AnimatorConditionMode, float>>(), target);
+        }
+
+        public static AnimatorStateTransition CreateTransition(string name, Tuple<string, AnimatorConditionMode, float>[] floatConditions, AnimatorState target)
+        {
+            return CreateTransition(name, Array.Empty<Tuple<string, bool>>(), Array.Empty<Tuple<string, AnimatorConditionMode, int>>(), floatConditions, target);
+        }
+
+        public static AnimatorStateTransition CreateTransition(string name, Tuple<string, bool>[] boolConditions, Tuple<string, AnimatorConditionMode, int>[] intConditions, AnimatorState target)
+        {
+            return CreateTransition(name, boolConditions, intConditions, Array.Empty<Tuple<string, AnimatorConditionMode, float>>(), target);
+        }
+
+        public static AnimatorStateTransition CreateTransition(string name, Tuple<string, bool>[] boolConditions, Tuple<string, AnimatorConditionMode, float>[] floatConditions, AnimatorState target)
+        {
+            return CreateTransition(name, boolConditions, Array.Empty<Tuple<string, AnimatorConditionMode, int>>(), floatConditions, target);
+        }
+
+        public static AnimatorStateTransition CreateTransition(string name, Tuple<string, AnimatorConditionMode, int>[] intConditions, Tuple<string, AnimatorConditionMode, float>[] floatConditions, AnimatorState target)
+        {
+            return CreateTransition(name, Array.Empty<Tuple<string, bool>>(), intConditions, floatConditions, target);
+        }
+        
+        public static AnimatorTransition CreateEntryTransition(string name, Tuple<string, bool>[] boolConditions, AnimatorState target)
+        {
+            return CreateEntryTransition(name, boolConditions, Array.Empty<Tuple<string, AnimatorConditionMode, int>>(), Array.Empty<Tuple<string, AnimatorConditionMode, float>>(), target);
+        }
+
+        public static AnimatorTransition CreateEntryTransition(string name, Tuple<string, AnimatorConditionMode, int>[] intConditions, AnimatorState target)
+        {
+            return CreateEntryTransition(name, Array.Empty<Tuple<string, bool>>(), intConditions, Array.Empty<Tuple<string, AnimatorConditionMode, float>>(), target);
+        }
+
+        public static AnimatorTransition CreateEntryTransition(string name, Tuple<string, AnimatorConditionMode, float>[] floatConditions, AnimatorState target)
+        {
+            return CreateEntryTransition(name, Array.Empty<Tuple<string, bool>>(), Array.Empty<Tuple<string, AnimatorConditionMode, int>>(), floatConditions, target);
+        }
+
+        public static AnimatorTransition CreateEntryTransition(string name, Tuple<string, bool>[] boolConditions, Tuple<string, AnimatorConditionMode, int>[] intConditions, AnimatorState target)
+        {
+            return CreateEntryTransition(name, boolConditions, intConditions, Array.Empty<Tuple<string, AnimatorConditionMode, float>>(), target);
+        }
+
+        public static AnimatorTransition CreateEntryTransition(string name, Tuple<string, bool>[] boolConditions, Tuple<string, AnimatorConditionMode, float>[] floatConditions, AnimatorState target)
+        {
+            return CreateEntryTransition(name, boolConditions, Array.Empty<Tuple<string, AnimatorConditionMode, int>>(), floatConditions, target);
+        }
+
+        public static AnimatorTransition CreateEntryTransition(string name, Tuple<string, AnimatorConditionMode, int>[] intConditions, Tuple<string, AnimatorConditionMode, float>[] floatConditions, AnimatorState target)
+        {
+            return CreateEntryTransition(name, Array.Empty<Tuple<string, bool>>(), intConditions, floatConditions, target);
+        }
+        
         public static AnimationClip CreateClip(string name, string path, string property, float start, float end, string assetFolder)
         {
             Dictionary<string[], float[]> props = new Dictionary<string[], float[]> { { new[] { path, property }, new[] { start, end } } };
@@ -378,9 +465,10 @@ namespace Hackebein.ObjectTracking
             foreach (KeyValuePair<string[], float[]> prop in props)
             {
                 Type type = typeof(GameObject);
-                switch (prop.Key[1].Split(".")[0])
+                switch (prop.Key[1].Split('.')[0])
                 {
                     case "m_TranslationOffsets":
+                    case "m_RotationOffsets":
                         type = typeof(ParentConstraint);
                         break;
                     case "m_LocalPosition":
@@ -388,7 +476,7 @@ namespace Hackebein.ObjectTracking
                     case "m_LocalScale":
                         type = typeof(Transform);
                         break;
-                    case "IsActive":
+                    case "m_IsActive":
                         type = typeof(GameObject);
                         break;
                     default:

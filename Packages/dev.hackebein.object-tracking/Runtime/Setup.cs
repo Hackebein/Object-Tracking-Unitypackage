@@ -52,8 +52,15 @@ namespace Hackebein.ObjectTracking
         public int CountExpectedExpressionParameters()
         {
             int costs = 0;
+            costs++; // config/global
+            costs++; // config/index
+            costs++; // config/value
+            costs++; // isRemotePreview
+            costs++; // goStabilized
+            costs++; // isStabilized
             foreach (SetupTracker tracker in trackers)
             {
+                costs++; // config/<tracker.name>
                 costs += tracker.GetExpressionParameters();
             }
 
@@ -130,33 +137,37 @@ namespace Hackebein.ObjectTracking
             Remove();
             
             // ignore animation
-            ignoreClip = Utility.CreateClip("ignore", "_ignore", "IsActive", 0, 0, assetFolder);
+            ignoreClip = Utility.CreateClip("ignore", "_ignore", "m_IsActive", 0, 0, assetFolder);
 
             // Parameters
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "IsLocal");
-            controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/IsRemotePreview");
+            controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/isRemotePreview");
+            controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/goStabilized");
+            controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/isStabilized");
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/config/global");
+            controller = Utility.CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/config/index");
+            controller = Utility.CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/config/value");
 
-            expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/IsRemotePreview", false, false, false);
+            expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/isRemotePreview", false, false, false);
+            expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/goStabilized", false, false, false);
+            expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/isStabilized", false, false, false);
             expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/global", false, false, false);
+            expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/index", 0, false, false);
+            expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/value", 0, false, false);
             foreach (SetupTracker tracker in trackers)
             {
                 controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/config/" + tracker.name);
                 expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/" + tracker.name, false, false, false);
-            }
-            for (int i = 0; i < 30; i++)
-            {
-                controller = Utility.CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/config/value" + i);
-                expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/value" + i, 0, false, false);
             }
             foreach (SetupTracker tracker in trackers)
             {
                 tracker.AppendAnimatorControllerParameters(controller);
             }
 
-            // Object for scaling
+            // Object for scaling and z-offset
             GameObject scaleGameObject = Utility.FindOrCreateEmptyGameObject("ObjectTracking", rootGameObject);
             Utility.ResetGameObject(scaleGameObject);
+            // TODO: get z-offset from AvatarDescriptor
 
             // Objects for tracking
             foreach (SetupTracker tracker in trackers)
@@ -169,6 +180,7 @@ namespace Hackebein.ObjectTracking
 
             // Animation Controller
             CreateProcessingLayer();
+            CreateStabilizationLayer();
             foreach (SetupTracker tracker in trackers)
             {
                 tracker.AppendTransitionLayers(controller, assetFolder + "/" + uuid);
@@ -215,10 +227,10 @@ namespace Hackebein.ObjectTracking
 
             Dictionary<string[], float[]> propsInit = new Dictionary<string[], float[]>
             {
-                { new[] { "ObjectTracking", "IsActive" }, new[] { 1f, 1f } },
+                { new[] { "ObjectTracking", "m_IsActive" }, new[] { 1f, 1f } },
                 { new[] { "ObjectTracking", "m_LocalPosition.x" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalPosition.y" }, new[] { 0f, 0f } },
-                { new[] { "ObjectTracking", "m_LocalPosition.z" }, new[] { 0f, 0f } },
+                { new[] { "ObjectTracking", "m_LocalPosition.z" }, new[] { 0f, 0f } }, // TODO: get from AvatarDescriptor
                 { new[] { "ObjectTracking", "m_LocalRotation.x" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalRotation.y" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalRotation.z" }, new[] { 0f, 0f } },
@@ -252,11 +264,82 @@ namespace Hackebein.ObjectTracking
 
             List<VRCAvatarParameterDriver.Parameter> parameterDriverParametersLocal = new List<VRCAvatarParameterDriver.Parameter>
             {
+                Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 0),
+                Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 0),
+                Utility.ParameterDriverParameterSet("ObjectTracking/config/global", true),
+                Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 1), // version number
+                Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 1),
                 Utility.ParameterDriverParameterSet("ObjectTracking/config/global", false),
+                Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 0),
+                Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 0),
             };
-            foreach (SetupTracker tracker in trackers)
+            for (int i = 0; i < trackers.Count; i++)
             {
+                SetupTracker tracker = trackers[i];
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/" + tracker.name, true));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRPX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 1));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRPY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 2));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRPZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 3));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRRX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 4));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRRY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 5));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRRZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 6));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLPX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 7));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLPY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 8));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLPZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 9));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLRX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 10));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLRY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 11));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLRZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 12));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRPX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 13));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRPY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 14));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRPZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 15));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRRX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 16));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRRY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 17));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRRZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 18));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLPX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 19));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLPY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 20));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLPZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 21));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLRX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 22));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLRY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 23));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLRZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 24));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRPX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 25));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRPY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 26));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRPZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 27));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRRX));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 28));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRRY));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 29));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRRZ));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 30));
                 parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/" + tracker.name, false));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 0));
+                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 0));
             }
             VRCAvatarParameterDriver parameterDriverLocal = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
             parameterDriverLocal.parameters = parameterDriverParametersLocal;
@@ -286,8 +369,7 @@ namespace Hackebein.ObjectTracking
 
             stateRemote.motion = Utility.CreateDirectBlendTree("processing", motionsRemote);
 
-            List<VRCAvatarParameterDriver.Parameter> parameterDriverParametersRemote =
-                new List<VRCAvatarParameterDriver.Parameter>();
+            List<VRCAvatarParameterDriver.Parameter> parameterDriverParametersRemote = new List<VRCAvatarParameterDriver.Parameter>();
             foreach (SetupTracker tracker in trackers)
             {
                 tracker.AppendAvatarParameterDriverParameters(parameterDriverParametersRemote);
@@ -308,124 +390,135 @@ namespace Hackebein.ObjectTracking
             layer.stateMachine.states = layer.stateMachine.states.Append(stateRemoteChild).ToArray();
 
             // Transition Conditions
-            Dictionary<string, bool> conditionsToLocal = new Dictionary<string, bool>
+            Tuple<string, bool>[] conditionsToLocal = new Tuple<string, bool>[]
             {
-                { "IsLocal", true },
-                { "ObjectTracking/IsRemotePreview", false },
+                Tuple.Create("IsLocal", true),
+                Tuple.Create("ObjectTracking/isRemotePreview", false),
             };
-            Dictionary<string, bool> conditionsToRemote = new Dictionary<string, bool>
+            Tuple<string, bool>[] conditionsToRemote = new Tuple<string, bool>[]
             {
-                { "IsLocal", false },
+                Tuple.Create("IsLocal", false),
             };
-            Dictionary<string, bool> conditionsToRemotePreview = new Dictionary<string, bool>
+            Tuple<string, bool>[] conditionsToRemotePreview = new Tuple<string, bool>[]
             {
-                { "ObjectTracking/IsRemotePreview", true },
+                Tuple.Create("ObjectTracking/isRemotePreview", true),
+            };
+            Tuple<string, bool>[] conditionsReload = new Tuple<string, bool>[]
+            {
+                Tuple.Create("ObjectTracking/config/global", true),
             };
             
             stateInit.transitions = new[]
             {
-                Utility.CreateBoolTransition("isRemote", conditionsToRemote, stateRemote),
-                Utility.CreateBoolTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
-                Utility.CreateBoolTransition("isLocal", conditionsToLocal, stateLocal)
+                Utility.CreateTransition("isRemote", conditionsToRemote, stateRemote),
+                Utility.CreateTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
+                Utility.CreateTransition("isLocal", conditionsToLocal, stateLocal)
             };
             stateLocal.transitions = new[]
             {
-                Utility.CreateBoolTransition("isRemote", conditionsToRemote, stateRemote),
-                Utility.CreateBoolTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
+                Utility.CreateTransition("isRemote", conditionsToRemote, stateRemote),
+                Utility.CreateTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
+                Utility.CreateTransition("reload", conditionsReload, stateLocal)
             };
             stateRemote.transitions = new[]
             {
-                Utility.CreateBoolTransition("isRemote", conditionsToRemote, stateRemote),
-                Utility.CreateBoolTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
-                Utility.CreateBoolTransition("isLocal", conditionsToLocal, stateLocal),
+                Utility.CreateTransition("isRemote", conditionsToRemote, stateRemote),
+                Utility.CreateTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
+                Utility.CreateTransition("isLocal", conditionsToLocal, stateLocal),
             };
+
+            Utility.AddSubAssetsToDatabase(layer, controller);
+        }
+
+        public void CreateStabilizationLayer()
+        {
+            // Layer
+            AnimatorControllerLayer layer = Utility.CreateLayer("ObjectTracking/Stabilization");
+            controller.layers = controller.layers.Append(layer).ToArray();
             
-            AnimatorState stateGlobal = new AnimatorState
+            // Animation State Off
+            AnimatorState stateOff = new AnimatorState
             {
-                name = "Global Config",
+                name = "Off",
                 writeDefaultValues = false,
                 motion = ignoreClip
             };
- 
-            VRCAvatarParameterDriver parameterDriverGlobal = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
-            parameterDriverGlobal.parameters = new List<VRCAvatarParameterDriver.Parameter>
-            {
-                Utility.ParameterDriverParameterSet("ObjectTracking/config/value0", 1), // version number
-            };
-            parameterDriverGlobal.localOnly = false;
-            stateGlobal.behaviours = new StateMachineBehaviour[] { parameterDriverGlobal };
 
-            ChildAnimatorState stateGlobalChild = new ChildAnimatorState
-            {
-                state = stateGlobal,
-                position = new Vector3(30, 270, 0)
-            };
-
-            stateLocal.AddTransition(Utility.CreateBoolTransition("isGlobal", "ObjectTracking/config/global", true, stateGlobal));
-            stateGlobal.AddTransition(Utility.CreateBoolTransition("reset", "ObjectTracking/config/global", false, stateLocal));
-
-            layer.stateMachine.states = layer.stateMachine.states.Append(stateGlobalChild).ToArray();
+            VRCAnimatorLocomotionControl locomotionControlOff = ScriptableObject.CreateInstance<VRCAnimatorLocomotionControl>();
+            locomotionControlOff.disableLocomotion = false;
             
-            // Animation State Config Groups
-            for (int i = 0; i < trackers.Count; i++)
+            VRCAvatarParameterDriver parameterDriverOff = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
+            parameterDriverOff.parameters = new List<VRCAvatarParameterDriver.Parameter>
             {
-                SetupTracker tracker = trackers[i];
-                AnimatorState stateDevice = new AnimatorState
-                {
-                    name = "Tracker Config " + tracker.name,
-                    writeDefaultValues = false,
-                    motion = ignoreClip
-                };
+                Utility.ParameterDriverParameterSet("ObjectTracking/isStabilized", false)
+            };
+            parameterDriverOff.localOnly = false;
+            stateOff.behaviours = new StateMachineBehaviour[] { locomotionControlOff, parameterDriverOff };
 
-                VRCAvatarParameterDriver parameterDriverDevice = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
-                parameterDriverDevice.parameters = new List<VRCAvatarParameterDriver.Parameter>
-                {
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value0", tracker.bitsRPX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value1", tracker.bitsRPY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value2", tracker.bitsRPZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value3", tracker.bitsRRX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value4", tracker.bitsRRY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value5", tracker.bitsRRZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value6", tracker.minLPX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value7", tracker.minLPY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value8", tracker.minLPZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value9", tracker.minLRX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value10", tracker.minLRY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value11", tracker.minLRZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value12", tracker.minRPX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value13", tracker.minRPY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value14", tracker.minRPZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value15", tracker.minRRX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value16", tracker.minRRY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value17", tracker.minRRZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value18", tracker.maxLPX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value19", tracker.maxLPY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value20", tracker.maxLPZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value21", tracker.maxLRX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value22", tracker.maxLRY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value23", tracker.maxLRZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value24", tracker.maxRPX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value25", tracker.maxRPY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value26", tracker.maxRPZ),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value27", tracker.maxRRX),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value28", tracker.maxRRY),
-                    Utility.ParameterDriverParameterSet("ObjectTracking/config/value29", tracker.maxRRZ),
-                    //Utility.ParameterDriverParameterSet("ObjectTracking/config/" + tracker.name, false),
-                };
-                parameterDriverDevice.localOnly = false;
-                stateDevice.behaviours = new StateMachineBehaviour[] { parameterDriverDevice };
+            ChildAnimatorState stateOffChild = new ChildAnimatorState
+            {
+                state = stateOff,
+                position = new Vector3(30, 190, 0)
+            };
 
-                ChildAnimatorState stateDeviceChild = new ChildAnimatorState
-                {
-                    state = stateDevice,
-                    position = new Vector3(30, 350 + (i * 80), 0)
-                };
-                stateLocal.AddTransition(Utility.CreateBoolTransition("isDevice " + tracker.name, "ObjectTracking/config/" + tracker.name, true, stateDevice));
-                stateDevice.AddTransition(Utility.CreateBoolTransition("reset", "ObjectTracking/config/global", false, stateLocal));
+            layer.stateMachine.states = layer.stateMachine.states.Append(stateOffChild).ToArray();
+            
+            // Animation State On
+            AnimatorState stateOn = new AnimatorState
+            {
+                name = "On",
+                writeDefaultValues = false,
+                motion = ignoreClip
+            };
 
-                layer.stateMachine.states = layer.stateMachine.states.Append(stateDeviceChild).ToArray();
-
-            }
+            VRCAnimatorLocomotionControl locomotionControlOn = ScriptableObject.CreateInstance<VRCAnimatorLocomotionControl>();
+            locomotionControlOn.disableLocomotion = true;
+            
+            VRCAvatarParameterDriver parameterDriverOn = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
+            parameterDriverOn.parameters = new List<VRCAvatarParameterDriver.Parameter>
+            {
+                Utility.ParameterDriverParameterSet("ObjectTracking/isStabilized", true)
+            };
+            parameterDriverOn.localOnly = false;
+            stateOn.behaviours = new StateMachineBehaviour[] { locomotionControlOn, parameterDriverOn };
+            
+            ChildAnimatorState stateOnChild = new ChildAnimatorState
+            {
+                state = stateOn,
+                position = new Vector3(270, 190, 0)
+            };
+            
+            layer.stateMachine.states = layer.stateMachine.states.Append(stateOnChild).ToArray();
+            
+            // Transition Conditions
+            Tuple<string, bool>[] conditionsToOnBools = new Tuple<string, bool>[]
+            {
+                Tuple.Create("IsLocal", true),
+                Tuple.Create("ObjectTracking/goStabilized", true),
+                Tuple.Create("InStation", false),
+            };
+            Tuple<string, AnimatorConditionMode, float>[] conditionsToOnFloats = new Tuple<string, AnimatorConditionMode, float>[]
+            {
+                Tuple.Create("VelocityX", AnimatorConditionMode.Greater, (float)-1 / 127),
+                Tuple.Create("VelocityX", AnimatorConditionMode.Less, (float)1 / 127),
+                Tuple.Create("VelocityY", AnimatorConditionMode.Greater, (float)-1 / 127),
+                Tuple.Create("VelocityY", AnimatorConditionMode.Less, (float)1 / 127),
+                Tuple.Create("VelocityZ", AnimatorConditionMode.Greater, (float)0),
+            };
+            Tuple<string, bool>[] conditionsToOff = new Tuple<string, bool>[]
+            {
+                Tuple.Create("ObjectTracking/goStabilized", false)
+            };
+            
+            stateOff.transitions = new[]
+            {
+                Utility.CreateTransition("isStabilization", conditionsToOnBools, conditionsToOnFloats, stateOn)
+            };
+            
+            stateOn.transitions = new[]
+            {
+                Utility.CreateTransition("isUnstabilization", conditionsToOff, stateOff)
+            };
 
             Utility.AddSubAssetsToDatabase(layer, controller);
         }

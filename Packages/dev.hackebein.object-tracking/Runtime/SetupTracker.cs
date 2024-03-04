@@ -23,11 +23,11 @@ namespace Hackebein.ObjectTracking
         public int bitsRRX = 6;
         public int bitsRRY = 6;
         public int bitsRRZ = 6;
-        public int minLPX = -42;
+        public int minLPX = -12;
         public int minRPX = -5;
-        public int minLPY = -42;
+        public int minLPY = -12;
         public int minRPY = 0;
-        public int minLPZ = -42;
+        public int minLPZ = -12;
         public int minRPZ = -5;
         public int minLRX = -180;
         public int minRRX = -180;
@@ -35,11 +35,11 @@ namespace Hackebein.ObjectTracking
         public int minRRY = -180;
         public int minLRZ = -180;
         public int minRRZ = -180;
-        public int maxLPX = 42;
+        public int maxLPX = 12;
         public int maxRPX = 5;
-        public int maxLPY = 42;
+        public int maxLPY = 12;
         public int maxRPY = 3;
-        public int maxLPZ = 42;
+        public int maxLPZ = 12;
         public int maxRPZ = 5;
         public int maxLRX = 180;
         public int maxRRX = 180;
@@ -116,6 +116,7 @@ namespace Hackebein.ObjectTracking
         {
             string path = "";
             string property = "";
+            // TODO: add support for multiple properties
             switch (name)
             {
                 case "PX":
@@ -132,15 +133,15 @@ namespace Hackebein.ObjectTracking
                     break;
                 case "RX":
                     path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
-                    property = "m_TranslationOffsets.Array.data[0].x";
+                    property = "m_RotationOffsets.Array.data[0].x";
                     break;
                 case "RY":
                     path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
-                    property = "m_TranslationOffsets.Array.data[0].y";
+                    property = "m_RotationOffsets.Array.data[0].y";
                     break;
                 case "RZ":
                     path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
-                    property = "m_TranslationOffsets.Array.data[0].z";
+                    property = "m_RotationOffsets.Array.data[0].z";
                     break;
             }
 
@@ -214,33 +215,33 @@ namespace Hackebein.ObjectTracking
             controller.layers = controller.layers.Append(layer).ToArray();
 
             // Transition Conditions
-            Dictionary<string, bool> conditionsToLocal = new Dictionary<string, bool>
+            Tuple<string, bool>[] conditionsToLocal = new Tuple<string, bool>[]
             {
-                { "IsLocal", true },
-                { "ObjectTracking/IsRemotePreview", false },
+                Tuple.Create("IsLocal", true),
+                Tuple.Create("ObjectTracking/isRemotePreview", false),
             };
-            Dictionary<string, bool> conditionsToRemote = new Dictionary<string, bool>
+            Tuple<string, bool>[] conditionsToRemote = new Tuple<string, bool>[]
             {
-                { "IsLocal", false },
+                Tuple.Create("IsLocal", false),
             };
-            Dictionary<string, bool> conditionsToRemotePreview = new Dictionary<string, bool>
+            Tuple<string, bool>[] conditionsToRemotePreview = new Tuple<string, bool>[]
             {
-                { "ObjectTracking/IsRemotePreview", true }
+                Tuple.Create("ObjectTracking/isRemotePreview", true),
             };
 
             layer.stateMachine.entryTransitions = new[]
             {
-                Utility.CreateEntryBoolTransition("isRemote", conditionsToRemote, stateRemote),
-                Utility.CreateEntryBoolTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
+                Utility.CreateEntryTransition("isRemote", conditionsToRemote, stateRemote),
+                Utility.CreateEntryTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
             };
             stateLocal.transitions = new[]
             {
-                Utility.CreateBoolTransition("isRemote", conditionsToRemote, stateRemote),
-                Utility.CreateBoolTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
+                Utility.CreateTransition("isRemote", conditionsToRemote, stateRemote),
+                Utility.CreateTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
             };
             stateRemote.transitions = new[]
             {
-                Utility.CreateBoolTransition("isLocal", conditionsToLocal, stateLocal),
+                Utility.CreateTransition("isLocal", conditionsToLocal, stateLocal),
             };
 
             // Clip
@@ -307,7 +308,7 @@ namespace Hackebein.ObjectTracking
         {
             foreach (KeyValuePair<string[], int[]> axe in Axes())
             {
-                reset.Add(new[] { axe.Key[1], "IsActive" }, new[] { 1f, 1f });
+                reset.Add(new[] { axe.Key[1], "m_IsActive" }, new[] { 1f, 1f });
                 reset.Add(new[] { axe.Key[1], "m_LocalPosition.x" }, new[] { 0f, 0f });
                 reset.Add(new[] { axe.Key[1], "m_LocalPosition.y" }, new[] { 0f, 0f });
                 reset.Add(new[] { axe.Key[1], "m_LocalPosition.z" }, new[] { 0f, 0f });
@@ -333,14 +334,12 @@ namespace Hackebein.ObjectTracking
                 controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0], .5f);
                 for (int i = 0; i < accuracyBits; i++)
                 {
-                    // TODO: set default value to meet the middle of the range
                     controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i);
                     controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i + "-Float");
                 }
 
                 for (int i = 0; i < accuracyBytes; i++)
                 {
-                    // TODO: set default value to meet the middle of the range
                     controller = Utility.CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Byte" + i);
                     controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Byte" + i + "-Float");
                 }
@@ -355,16 +354,14 @@ namespace Hackebein.ObjectTracking
                 // TODO: simplification if accuracy is 8: skip both for-loops and do a synced parameter like local instead
                 int accuracyBytes = accuracy / 8;
                 int accuracyBits = accuracy - (accuracyBytes * 8);
-                expressionParameters = Utility.CreateFloatParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/L" + pair.Key[0], 0.5f, false, false);
+                expressionParameters = Utility.CreateFloatParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/L" + pair.Key[0], 0f, false, false);
                 for (int i = 0; i < accuracyBits; i++)
                 {
-                    // TODO: set default value to meet the middle of the range
                     expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i, false, false, true);
                 }
 
                 for (int i = 0; i < accuracyBytes; i++)
                 {
-                    // TODO: set default value to meet the middle of the range
                     expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Byte" + i, 0, false, true);
                 }
             }
@@ -375,8 +372,9 @@ namespace Hackebein.ObjectTracking
             int costs = 0;
             foreach (KeyValuePair<string[], int[]> pair in Axes())
             {
-                costs += pair.Value[0] / 8;
-                costs += pair.Value[0] % 8;
+                costs += 1; // L<PX|PY|PZ|RX|RY|RZ>
+                costs += pair.Value[0] / 8; // R<PX|PY|PZ|RX|RY|RZ>-Byte<0-4>
+                costs += pair.Value[0] % 8; // R<PX|PY|PZ|RX|RY|RZ>-Bit<0-7>
             }
 
             return costs;
