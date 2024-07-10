@@ -5,8 +5,10 @@ using System.Linq;
 using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.Animations;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Animations;
+using UnityEngine.SceneManagement;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 
@@ -486,6 +488,7 @@ namespace Hackebein.ObjectTracking
                             type = typeof(Animator);
                         } else {
                             Debug.LogWarning("Can't map property to a type, fall back to GameObject: " + prop.Key[1]);
+                            type = typeof(GameObject);
                         }
                         break;
                 }
@@ -666,6 +669,25 @@ namespace Hackebein.ObjectTracking
             }
 
             return (float)multiplicator;
+        }
+        
+        public static void MarkDirty(UnityEngine.Object obj) {
+            EditorUtility.SetDirty(obj);
+        
+            // obsolete for Untiy 2020+
+            if (obj is GameObject go) {
+                MarkSceneDirty(go.scene);
+            } else if (obj is UnityEngine.Component c) {
+                MarkSceneDirty(((dynamic)c).gameObject.owner().scene);
+            }
+        }
+        
+        private static void MarkSceneDirty(Scene scene) {
+            if (Application.isPlaying) return;
+            if (scene == null) return;
+            if (!scene.isLoaded) return;
+            if (!scene.IsValid()) return;
+            EditorSceneManager.MarkSceneDirty(scene);
         }
 
         public static void AddSubAssetsToDatabase(AnimatorControllerLayer animatorControllerLayer, AnimatorController controller)
