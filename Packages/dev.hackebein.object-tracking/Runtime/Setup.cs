@@ -14,7 +14,7 @@ namespace Hackebein.ObjectTracking
 {
     public class Setup : MonoBehaviour, IEditorOnly
     {
-        public Utility.Modes mode = Utility.Modes.Advanced;
+        public Utility.Modes mode = Utility.Modes.Simple;
         public string assetFolder = "Assets/Hackebein/ObjectTracking/Generated";
         public string uuid = Guid.NewGuid().ToString();
         public GameObject rootGameObject;
@@ -22,17 +22,18 @@ namespace Hackebein.ObjectTracking
         public VRCExpressionParameters expressionParameters;
         public float scale = 1.0f;
         public List<SetupTracker> trackers = new List<SetupTracker>();
+        public bool debug = false;
         private AnimationClip ignoreClip;
 
-        public void AddTracker()
+        /*public void AddTracker(string name)
         {
-            trackers.Add(new SetupTracker());
-        }
+            trackers.Add(new SetupTracker(name));
+        }*/
 
-        public void RemoveTracker(int index)
+        /*public void RemoveTracker(int index)
         {
             trackers.RemoveAt(index);
-        }
+        }*/
 
         public int CountUsedLayers()
         {
@@ -46,7 +47,7 @@ namespace Hackebein.ObjectTracking
 
         public static int CountMaxExpressionParameters()
         {
-            return 256;
+            return 8192;
         }
 
         public int CountExpectedExpressionParameters()
@@ -141,6 +142,10 @@ namespace Hackebein.ObjectTracking
 
             // Parameters
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "IsLocal");
+            controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "InStation");
+            controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "VelocityX");
+            controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "VelocityY");
+            controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "VelocityZ");
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/isRemotePreview");
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/goStabilized");
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/isStabilized");
@@ -185,6 +190,8 @@ namespace Hackebein.ObjectTracking
             {
                 tracker.AppendTransitionLayers(controller, assetFolder + "/" + uuid);
             }
+
+            Utility.MarkDirty(expressionParameters);
         }
 
         private void CreateProcessingLayer()
@@ -230,7 +237,7 @@ namespace Hackebein.ObjectTracking
                 { new[] { "ObjectTracking", "m_IsActive" }, new[] { 1f, 1f } },
                 { new[] { "ObjectTracking", "m_LocalPosition.x" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalPosition.y" }, new[] { 0f, 0f } },
-                { new[] { "ObjectTracking", "m_LocalPosition.z" }, new[] { 0f, 0f } }, // TODO: get from AvatarDescriptor
+                { new[] { "ObjectTracking", "m_LocalPosition.z" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalRotation.x" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalRotation.y" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalRotation.z" }, new[] { 0f, 0f } },

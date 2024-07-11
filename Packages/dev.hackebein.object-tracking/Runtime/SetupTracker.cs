@@ -15,7 +15,7 @@ namespace Hackebein.ObjectTracking
     [Serializable]
     public class SetupTracker
     {
-        public string name = "XXX-XXXXXXXX";
+        public string name;
         public Utility.TrackerType trackerType = Utility.TrackerType.None;
         public int bitsRPX = 10;
         public int bitsRPY = 9;
@@ -47,10 +47,16 @@ namespace Hackebein.ObjectTracking
         public int maxRRY = 180;
         public int maxLRZ = 180;
         public int maxRRZ = 180;
+        public bool debug = false;
+        
+        public SetupTracker(string name)
+        {
+            this.name = name;
+        }
 
         public GameObject AppendObjects(GameObject parent)
         {
-            // Object for position (x, y, z)
+            // Objects for position (x, y, z)
             GameObject x = Utility.FindOrCreateEmptyGameObject(name, parent);
             GameObject y = Utility.FindOrCreateEmptyGameObject(name, x);
             GameObject z = Utility.FindOrCreateEmptyGameObject(name, y);
@@ -92,8 +98,52 @@ namespace Hackebein.ObjectTracking
             {
                 Debug.LogWarning(Utility.TrackerTypeText[trackerType.GetHashCode()] + " has no Model (yet)!");
             }
-
-
+            
+            // Debug Gizmos
+            if (debug)
+            {
+                // https://sketchfab.com/3d-models/transform-gizmo-8d1edffdedda4898b3fb1c3c4c08113c
+                string gizmo = "Packages/dev.hackebein.object-tracking/Prefab/GizmoUnity.fbx";
+                Material transparentMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Transparent.mat");
+                Utility.RemoveGameObjects("Gizmo", x);
+                GameObject x_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, x.transform);
+                x_debug.name = "Gizmo";
+                x_debug.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+                foreach (MeshRenderer meshRenderer in x_debug.GetComponents<MeshRenderer>())
+                {
+                    Material[] materials = meshRenderer.sharedMaterials;
+                    materials[1] = transparentMaterial;
+                    materials[2] = transparentMaterial;
+                    meshRenderer.sharedMaterials = materials;
+                }
+                Utility.RemoveGameObjects("Gizmo", y);
+                GameObject y_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, y.transform);
+                y_debug.name = "Gizmo";
+                y_debug.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+                foreach (MeshRenderer meshRenderer in y_debug.GetComponents<MeshRenderer>())
+                {
+                    Material[] materials = meshRenderer.sharedMaterials;
+                    materials[0] = transparentMaterial;
+                    materials[1] = transparentMaterial;
+                    meshRenderer.sharedMaterials = materials;
+                }
+                Utility.RemoveGameObjects("Gizmo", z);
+                GameObject z_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, z.transform);
+                z_debug.name = "Gizmo";
+                z_debug.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+                foreach (MeshRenderer meshRenderer in z_debug.GetComponents<MeshRenderer>())
+                {
+                    Material[] materials = meshRenderer.sharedMaterials;
+                    materials[0] = transparentMaterial;
+                    materials[2] = transparentMaterial;
+                    meshRenderer.sharedMaterials = materials;
+                }
+                Utility.RemoveGameObjects("Gizmo", r);
+                GameObject r_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, r.transform);
+                r_debug.name = "Gizmo";
+                r_debug.transform.localScale = new Vector3(0.04f, 0.04f, 0.04f);
+            }
+            
             return r;
         }
 

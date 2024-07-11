@@ -11,6 +11,7 @@ using UnityEngine.Animations;
 using UnityEngine.SceneManagement;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
+using Object = UnityEngine.Object;
 
 namespace Hackebein.ObjectTracking
 {
@@ -671,7 +672,7 @@ namespace Hackebein.ObjectTracking
             return (float)multiplicator;
         }
         
-        public static void MarkDirty(UnityEngine.Object obj) {
+        public static void MarkDirty(Object obj) {
             EditorUtility.SetDirty(obj);
         
             // obsolete for Untiy 2020+
@@ -689,7 +690,7 @@ namespace Hackebein.ObjectTracking
             if (!scene.IsValid()) return;
             EditorSceneManager.MarkSceneDirty(scene);
         }
-
+        
         public static void AddSubAssetsToDatabase(AnimatorControllerLayer animatorControllerLayer, AnimatorController controller)
         {
             AssetDatabase.RemoveObjectFromAsset(animatorControllerLayer.stateMachine);
