@@ -1,8 +1,8 @@
 {
   "name": "dev.hackebein.object-tracking",
-  "displayName": "VRChat Object Tracking Setup",
+  "displayName": "Hackebein's Object Tracking Setup",
   "version": "0.2.0",
-  "description": "VRChat Object Tracking automated Setup",
+  "description": "Hackebein's setup for Object Tracking in VRChat",
   "gitDependencies": {},
   "vpmDependencies": {
     "com.vrchat.avatars": ">= 3.1.12"

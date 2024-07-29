@@ -1,1 +1,1 @@
-# dev.hackebein.object-tracking by User
+# dev.hackebein.object-tracking

@@ -4,16 +4,24 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   bump-version:
     name: Bump Version on master
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      packagePath: Packages/${{ vars.PACKAGE_NAME }}
 
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
         with:
+          persist-credentials: false
           ref: ${{ github.ref }}
       - name: Automated Version Bump
         id: version-bump
@@ -22,3 +30,4 @@ jobs:
           tag-prefix: v
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGEJSON_DIR: ${{ env.packagePath }}
