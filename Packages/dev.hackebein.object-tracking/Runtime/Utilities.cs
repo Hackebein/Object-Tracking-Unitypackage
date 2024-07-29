@@ -74,35 +74,21 @@ namespace Hackebein.ObjectTracking
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw rotated.fbx",
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker strap.fbx",
         };
-/*
-        public static AnimatorControllerParameter CreateAnimatorParameter<T>(string name, T defaultValue)
+        
+        public static readonly Quaternion[] TrackerTypeQuaternion =
         {
-            AnimatorControllerParameter parameter = new AnimatorControllerParameter
-            {
-                name = name
-            };
-
-            switch (defaultValue)
-            {
-                case bool b:
-                    parameter.type = AnimatorControllerParameterType.Bool;
-                    parameter.defaultBool = b;
-                    break;
-                case float f:
-                    parameter.type = AnimatorControllerParameterType.Float;
-                    parameter.defaultFloat = f;
-                    break;
-                case int i:
-                    parameter.type = AnimatorControllerParameterType.Int;
-                    parameter.defaultInt = i;
-                    break;
-                default:
-                    throw new ArgumentException("Unsupported parameter type");
-            }
-
-            return parameter;
-        }
-*/
+            Quaternion.identity,
+            Quaternion.identity,
+            Quaternion.Euler(270, 0, 0),
+            Quaternion.Euler(270, 0, 0),
+            Quaternion.Euler(270, 0, 0),
+            Quaternion.identity,
+            Quaternion.identity,
+            Quaternion.Euler(270, 0, 0),
+            Quaternion.Euler(270, 0, 0),
+            Quaternion.Euler(270, 0, 0),
+        };
+        
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
         {
             AnimatorControllerParameter parameter = new AnimatorControllerParameter

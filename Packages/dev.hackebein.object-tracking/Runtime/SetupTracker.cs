@@ -84,15 +84,18 @@ namespace Hackebein.ObjectTracking
                 sourceTransform = r.transform
             };
             constraint.AddSource(source2);
-
+            
             // Tracker
             String path = Utility.TrackerTypeGameObjects[trackerType.GetHashCode()];
             if (path != null)
             {
                 Utility.RemoveGameObjects(Utility.TrackerTypeText[trackerType.GetHashCode()], r);
-                GameObject gameObject = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path), new Vector3(0, 0, 0), Quaternion.identity, r.transform);
+                GameObject gameObject = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path), new Vector3(0, 0, 0), Utility.TrackerTypeQuaternion[trackerType.GetHashCode()], r.transform);
                 gameObject.name = Utility.TrackerTypeText[trackerType.GetHashCode()];
                 gameObject.tag = "EditorOnly";
+                // needs to be y because all objects are x rotated by 270°
+                // need to be z-1 after correction all objects
+                gameObject.transform.localScale = new Vector3(1f, -1f, 1f); 
             }
             else if (trackerType != Utility.TrackerType.None)
             {
@@ -141,7 +144,7 @@ namespace Hackebein.ObjectTracking
                 Utility.RemoveGameObjects("Gizmo", r);
                 GameObject r_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, r.transform);
                 r_debug.name = "Gizmo";
-                r_debug.transform.localScale = new Vector3(0.04f, 0.04f, 0.04f);
+                r_debug.transform.localScale = new Vector3(0.04f, 0.04f, -0.04f);
             }
             
             return r;

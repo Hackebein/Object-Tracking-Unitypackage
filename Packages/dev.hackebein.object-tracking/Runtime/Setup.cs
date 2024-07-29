@@ -15,12 +15,13 @@ namespace Hackebein.ObjectTracking
     public class Setup : MonoBehaviour, IEditorOnly
     {
         public Utility.Modes mode = Utility.Modes.Simple;
-        public string assetFolder = "Assets/Hackebein/ObjectTracking/Generated";
+        public string generatedAssetFolder = "Assets/Hackebein/ObjectTracking/Generated";
         public string uuid = Guid.NewGuid().ToString();
         public GameObject rootGameObject;
         public AnimatorController controller;
         public VRCExpressionParameters expressionParameters;
         public float scale = 1.0f;
+        public float zOffset = 0.0f;
         public List<SetupTracker> trackers = new List<SetupTracker>();
         public bool debug = false;
         private AnimationClip ignoreClip;
@@ -111,12 +112,12 @@ namespace Hackebein.ObjectTracking
 
         public void Remove()
         {
-            if (Directory.Exists(assetFolder))
+            if (Directory.Exists(generatedAssetFolder))
             {
-                Utility.RemoveAssets(assetFolder + "/" + uuid);
-                if (Directory.GetDirectories(assetFolder, "*", SearchOption.AllDirectories).Length == 0)
+                Utility.RemoveAssets(generatedAssetFolder + "/" + uuid);
+                if (Directory.GetDirectories(generatedAssetFolder, "*", SearchOption.AllDirectories).Length == 0)
                 {
-                    AssetDatabase.DeleteAsset(assetFolder);
+                    AssetDatabase.DeleteAsset(generatedAssetFolder);
                 }
             }
 
@@ -138,7 +139,7 @@ namespace Hackebein.ObjectTracking
             Remove();
             
             // ignore animation
-            ignoreClip = Utility.CreateClip("ignore", "_ignore", "m_IsActive", 0, 0, assetFolder);
+            ignoreClip = Utility.CreateClip("ignore", "_ignore", "m_IsActive", 0, 0, generatedAssetFolder);
 
             // Parameters
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "IsLocal");
@@ -172,7 +173,9 @@ namespace Hackebein.ObjectTracking
             // Object for scaling and z-offset
             GameObject scaleGameObject = Utility.FindOrCreateEmptyGameObject("ObjectTracking", rootGameObject);
             Utility.ResetGameObject(scaleGameObject);
-            // TODO: get z-offset from AvatarDescriptor
+            
+            // TODO: check if this needs to be applied before or after scaling.
+            scaleGameObject.transform.localPosition = new Vector3(0, 0, zOffset);
 
             // Objects for tracking
             foreach (SetupTracker tracker in trackers)
@@ -188,7 +191,7 @@ namespace Hackebein.ObjectTracking
             CreateStabilizationLayer();
             foreach (SetupTracker tracker in trackers)
             {
-                tracker.AppendTransitionLayers(controller, assetFolder + "/" + uuid);
+                tracker.AppendTransitionLayers(controller, generatedAssetFolder + "/" + uuid);
             }
 
             Utility.MarkDirty(expressionParameters);
@@ -251,7 +254,7 @@ namespace Hackebein.ObjectTracking
                 tracker.AppendResetList(propsInit);
             }
 
-            stateInit.motion = Utility.CreateClip("init", propsInit, assetFolder);
+            stateInit.motion = Utility.CreateClip("init", propsInit, generatedAssetFolder);
 
             ChildAnimatorState stateInitChild = new ChildAnimatorState
             {
@@ -371,7 +374,7 @@ namespace Hackebein.ObjectTracking
             Dictionary<string, AnimationClip> motionsRemote = new Dictionary<string, AnimationClip>();
             foreach (SetupTracker tracker in trackers)
             {
-                tracker.AppendAAPMotionList(assetFolder + "/" + uuid, motionsRemote);
+                tracker.AppendAAPMotionList(generatedAssetFolder + "/" + uuid, motionsRemote);
             }
 
             stateRemote.motion = Utility.CreateDirectBlendTree("processing", motionsRemote);
