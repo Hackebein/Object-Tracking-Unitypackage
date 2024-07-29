@@ -75,20 +75,6 @@ namespace Hackebein.ObjectTracking
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker strap.fbx",
         };
         
-        public static readonly Quaternion[] TrackerTypeQuaternion =
-        {
-            Quaternion.identity,
-            Quaternion.identity,
-            Quaternion.Euler(270, 0, 0),
-            Quaternion.Euler(270, 0, 0),
-            Quaternion.Euler(270, 0, 0),
-            Quaternion.identity,
-            Quaternion.identity,
-            Quaternion.Euler(270, 0, 0),
-            Quaternion.Euler(270, 0, 0),
-            Quaternion.Euler(270, 0, 0),
-        };
-        
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
         {
             AnimatorControllerParameter parameter = new AnimatorControllerParameter

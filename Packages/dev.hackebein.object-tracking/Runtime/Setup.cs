@@ -173,9 +173,6 @@ namespace Hackebein.ObjectTracking
             // Object for scaling and z-offset
             GameObject scaleGameObject = Utility.FindOrCreateEmptyGameObject("ObjectTracking", rootGameObject);
             Utility.ResetGameObject(scaleGameObject);
-            
-            // TODO: check if this needs to be applied before or after scaling.
-            scaleGameObject.transform.localPosition = new Vector3(0, 0, zOffset);
 
             // Objects for tracking
             foreach (SetupTracker tracker in trackers)
@@ -185,6 +182,9 @@ namespace Hackebein.ObjectTracking
 
             // Set scale
             scaleGameObject.transform.localScale = new Vector3(scale, scale, scale);
+            
+            // TODO: check if this needs to be applied before or after scaling.
+            scaleGameObject.transform.localPosition = new Vector3(0, 0, zOffset);
 
             // Animation Controller
             CreateProcessingLayer();
