@@ -1,5 +1,6 @@
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Unity.XR.OpenVR;
 using UnityEditor;
@@ -16,7 +17,9 @@ namespace Hackebein.ObjectTracking
     {
         private float _realEyeHeight = 1.7f;
         private bool _updateOpenVrInfo = false;
-        private string[] _trackerList = new string[] { "Playspace" };
+        private Dictionary<string, string> _trackerList = new Dictionary<string, string>{
+            {"Playspace", "Playspace"}
+        };
         private DateTime _lastOpenVrUpdate = DateTime.MinValue;
         
         private int RangeNumberInputField(int value, int min, int max, GUILayoutOption[] guiLayoutOption)
@@ -130,7 +133,9 @@ namespace Hackebein.ObjectTracking
             if (_updateOpenVrInfo)
             {
                 _updateOpenVrInfo = false;
-                _trackerList = new string[] { "Playspace" };
+                _trackerList = new Dictionary<string, string>{
+                    {"Playspace", "Playspace"}
+                };
                 
                 if (OpenVR.System == null)
                 {
@@ -162,18 +167,18 @@ namespace Hackebein.ObjectTracking
                             {
                                 continue;
                             }
-
-                            _trackerList = _trackerList.Append(GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_SerialNumber_String)).ToArray();
+                            
+                            _trackerList.Add(GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_SerialNumber_String), GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_ModelNumber_String));
                         }
                         else if (deviceClass == ETrackedDeviceClass.GenericTracker)
                         {
-                            _trackerList = _trackerList.Append(GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_SerialNumber_String)).ToArray();
+                            _trackerList.Add(GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_SerialNumber_String), GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_ModelNumber_String));
                         }
                     }
                 }
             }
             
-            string[] _leftTrackerList = _trackerList;
+            Dictionary<string, string> _leftTrackerList = _trackerList;
             setup.mode = (Utility.Modes)GUILayout.Toolbar(setup.mode.GetHashCode(), Utility.ModesText);
 
             if (setup.mode == Utility.Modes.Expert)
@@ -358,7 +363,8 @@ namespace Hackebein.ObjectTracking
             // TODO: support GoGoLoco and similar systems
             foreach (SetupTracker tracker in setup.trackers)
             {
-                _leftTrackerList = _leftTrackerList.Where(val => val != tracker.name).ToArray();
+                _leftTrackerList = _leftTrackerList.Where(x => x.Key != tracker.name).ToDictionary(x => x.Key, x => x.Value);
+
                 using (new GUILayout.VerticalScope("box"))
                 {
                     using (new GUILayout.HorizontalScope())
@@ -1230,18 +1236,19 @@ namespace Hackebein.ObjectTracking
                 }
                 
                 GUILayout.BeginHorizontal();
-                for (int i = 0; i < _leftTrackerList.Length; i++)
+                int i = 0;
+                foreach (KeyValuePair<string, string> tracker in _leftTrackerList)
                 {
-                    if (i % 3 == 0)
+                    if (i % 2 == 0)
                     {
                         GUILayout.EndHorizontal();
                         GUILayout.BeginHorizontal();
                     }
-                    string tracker = _leftTrackerList[i];
-                    if (GUILayout.Button("Add '" + tracker + "'", RelativeWidth((float)1 / 3, true)))
+                    if (GUILayout.Button("Add " + tracker.Value + " (" + tracker.Key + ")", RelativeWidth((float)1 / 2, true)))
                     {
-                        setup.trackers.Add(new SetupTracker(tracker));
+                        setup.trackers.Add(new SetupTracker(tracker.Key));
                     }
+                    i++;
                 }
                 GUILayout.EndHorizontal();
             }
