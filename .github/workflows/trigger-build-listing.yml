@@ -1,0 +1,25 @@
+name: Trigger building Repo Listing
+
+env:
+  listPublishDirectory: Website
+  pathToCi: ci
+
+on:
+  release:
+    types: [published, unpublished, created, edited, deleted]
+  workflow_dispatch: 
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'hackebein',
+              repo: 'VCC-Listing',
+              workflow_id: 'build-listing.yml',
+              ref: 'main',
+            })
