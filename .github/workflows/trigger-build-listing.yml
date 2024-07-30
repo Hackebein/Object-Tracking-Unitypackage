@@ -19,7 +19,7 @@ jobs:
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'hackebein',
-              repo: 'VCC-Listing',
+              repo: 'VPM-Listing',
               workflow_id: 'build-listing.yml',
               ref: 'main',
             })

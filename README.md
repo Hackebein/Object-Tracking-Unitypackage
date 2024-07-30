@@ -1,7 +1,7 @@
 # Hackebein's Object Tracking
 Track your real objects and track them in VRChat. All SteamVR/OpenVR tracker are supported.
 
-Hackebein's VCC Listing: [vcc.hackebein.dev](https://vcc.hackebein.dev)
+Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 
 ## Unity Setup Script
 ![Unity Setup Script](Docs/setup_script.png)
