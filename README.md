@@ -1,6 +1,10 @@
 # Hackebein's Object Tracking
 Track your real objects and track them in VRChat. All SteamVR/OpenVR tracker are supported.
 
+Needs SteamVR component. Available on:
+* [Steam](https://store.steampowered.com/app/3140770)
+* [Github](https://github.com/Hackebein/Object-Tracking-App)
+
 Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 
 ## Unity Setup Script
@@ -25,3 +29,17 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 * Setup your Tracking costs
 * Press Create: Tracker gets generated at 0, 0
 * Align your object inside the 4th object with the same name at 1:1 IRL scale
+
+### Menu Item
+#### ObjectTracking/goStabilized
+Toggle - stabalize movement if a lot of movement is going on
+
+#### ObjectTracking/isStabilized [Read Only]
+Button - shows if stabalization is active
+
+### Debug Menu Item
+#### ObjectTracking/isRemotePreview
+Toggle - Switches to remote view. (update rate change not supported yet)
+
+#### ObjectTracking/config/global
+Toggle - Resends config to App. 

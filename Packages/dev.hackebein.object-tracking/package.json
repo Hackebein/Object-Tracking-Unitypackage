@@ -10,10 +10,11 @@
   "author": {
     "name": "Hackebein",
     "email": "hackebein@gmail.com",
-    "url": "https://github.com/Hackebein/Object-Tracking-VPM"
+    "url": "https://hackebein.de"
   },
-  "legacyFolders": {},
-  "legacyFiles": {},
-  "localPath": "",
+  "license": "GPL-3.0-only",
+  "licensesUrl": "https://github.com/Hackebein/Object-Tracking-Unitypackage/raw/main/Packages/dev.hackebein.object-tracking/LICENSE",
+  "documentationUrl": "https://github.com/Hackebein/Object-Tracking-Unitypackage/blob/main/README.md",
+  "changelogUrl": "https://github.com/Hackebein/Object-Tracking-Unitypackage/blob/main/CHANGELOG.md",
   "unity": "2019.4"
 }
