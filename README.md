@@ -2,10 +2,13 @@
 Track your real objects and track them in VRChat. All SteamVR/OpenVR tracker are supported.
 
 Needs SteamVR component. Available on:
-* [Steam](https://store.steampowered.com/app/3140770) (Soon)
-* [Github](https://github.com/Hackebein/Object-Tracking-App)
+* [Steam](https://store.steampowered.com/app/3140770) (soon)
+* [Github](https://github.com/Hackebein/Object-Tracking-App/releases)
 
 Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
+
+## Support:
+* [Hackebein's Research Lab](https://discord.gg/AqCwGqqQmW) at discord.gg
 
 ## Unity Setup Script
 ![Unity Setup Script](Docs/setup_script.png)
@@ -16,12 +19,14 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
   top-navigation **>** Tools **>** Hackebein **>** Object Tracking Setup
 
 ### Quick Setup (simple)
-* Avatar: select your avatar (needs to contain Avatar Descriptor)
-* Real eye height (in m): Your Eye height when looking straight
-* If Steam VR is Running:
+* Avatar: select your avatar<br>
+  <sup>_needs to contain Avatar Descriptor component_</sup>
+* Real eye height (in m): Your Eye height when looking straight<br>
+  <sup>_Do a selfy with foldable ruler staying on the ground_</sup>
+* If SteamVR is Running:
   * click reload button
   * click tracker you like to add
-* If Steam VR is not Running:
+* If SteamVR is not Running:
   * click "Add Tracker"
   * Serial Number: Can be obtained in SteamVR System Report
   * Tracker Type: Select how the tracker looks
@@ -42,4 +47,4 @@ Button - shows if stabalization is active
 Toggle - Switches to remote view. (update rate change not supported yet)
 
 #### ObjectTracking/config/global
-Toggle - Resends config to App. 
+Toggle - Resends config to App.
