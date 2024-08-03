@@ -35,6 +35,8 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 * Press Create: Tracker gets generated at 0, 0
 * Align your object inside the 4th object with the same name at 1:1 IRL scale
 
+Video: https://youtu.be/oxvaUqVMznQ
+
 ### Menu Item
 #### ObjectTracking/goStabilized
 Toggle - stabalize movement if a lot of movement is going on
