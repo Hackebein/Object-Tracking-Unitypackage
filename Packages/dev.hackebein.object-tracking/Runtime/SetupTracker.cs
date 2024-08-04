@@ -152,12 +152,12 @@ namespace Hackebein.ObjectTracking
         {
             Dictionary<string[], int[]> axes = new Dictionary<string[], int[]>
             {
-                { AxePathAndProperty("PX"), new[] { bitsRPX, minLPX, maxLPX, minRPX, maxRPX } },
-                { AxePathAndProperty("PY"), new[] { bitsRPY, minLPY, maxLPY, minRPY, maxRPY } },
-                { AxePathAndProperty("PZ"), new[] { bitsRPZ, minLPZ, maxLPZ, minRPZ, maxRPZ } },
-                { AxePathAndProperty("RX"), new[] { bitsRRX, minLRX, maxLRX, minRRX, maxRRX } },
-                { AxePathAndProperty("RY"), new[] { bitsRRY, minLRY, maxLRY, minRRY, maxRRY } },
-                { AxePathAndProperty("RZ"), new[] { bitsRRZ, minLRZ, maxLRZ, minRRZ, maxRRZ } }
+                { AxePathAndProperty("PX"), new[] { bitsRPX, minLPX, maxLPX, minRPX, bitsRPX > 0 ? maxRPX : minRPX } },
+                { AxePathAndProperty("PY"), new[] { bitsRPY, minLPY, maxLPY, minRPY, bitsRPY > 0 ? maxRPY : minRPY } },
+                { AxePathAndProperty("PZ"), new[] { bitsRPZ, minLPZ, maxLPZ, minRPZ, bitsRPZ > 0 ? maxRPZ : minRPZ } },
+                { AxePathAndProperty("RX"), new[] { bitsRRX, minLRX, maxLRX, minRRX, bitsRRX > 0 ? maxRRX : minRRX } },
+                { AxePathAndProperty("RY"), new[] { bitsRRY, minLRY, maxLRY, minRRY, bitsRRY > 0 ? maxRRY : minRRY } },
+                { AxePathAndProperty("RZ"), new[] { bitsRRZ, minLRZ, maxLRZ, minRRZ, bitsRRZ > 0 ? maxRRZ : minRRZ } }
             };
 
             return axes;
