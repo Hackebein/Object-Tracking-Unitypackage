@@ -1246,7 +1246,7 @@ namespace Hackebein.ObjectTracking
                     }
                     if (GUILayout.Button("Add " + tracker.Value + " (" + tracker.Key + ")", RelativeWidth((float)1 / 2, true)))
                     {
-                        setup.trackers.Add(new SetupTracker(tracker.Key));
+                        setup.trackers.Add(new SetupTracker(tracker.Key, Utility.TrackerModelNumberToTrackerType(tracker.Value)));
                     }
                     i++;
                 }

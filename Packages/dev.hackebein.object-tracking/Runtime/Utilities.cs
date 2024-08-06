@@ -489,8 +489,9 @@ namespace Hackebein.ObjectTracking
                 ChildMotion motion = new ChildMotion
                 {
                     motion = pair.Value,
+                    threshold = 0f,
                     directBlendParameter = pair.Key,
-                    timeScale = 1
+                    timeScale = 1f
                 };
                 blendTree.children = blendTree.children.Append(motion).ToArray();
             }

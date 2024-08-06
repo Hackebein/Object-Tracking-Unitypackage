@@ -381,8 +381,8 @@ namespace Hackebein.ObjectTracking
                 // TODO: simplification if accuracy is 8: skip both for-loops
                 int accuracyBytes = accuracy / 8;
                 int accuracyBits = accuracy - (accuracyBytes * 8);
-                controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/L" + pair.Key[0], .5f);
-                controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0], .5f);
+                controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/L" + pair.Key[0]);
+                controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0]);
                 for (int i = 0; i < accuracyBits; i++)
                 {
                     controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/" + name + "/R" + pair.Key[0] + "-Bit" + i);
