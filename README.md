@@ -10,6 +10,10 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 ## Support:
 * [Hackebein's Research Lab](https://discord.gg/AqCwGqqQmW) at discord.gg
 
+### Known Issues
+* no WD ON support
+* remote view is broken
+
 ## Unity Setup Script
 ![Unity Setup Script](Docs/setup_script.png)
 
