@@ -75,6 +75,20 @@ namespace Hackebein.ObjectTracking
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker strap.fbx",
         };
         
+        public static TrackerType TrackerModelNumberToTrackerType(string model)
+        {
+            Utility.TrackerType type = Utility.TrackerType.None;
+            //if (model == "") type = Utility.TrackerType.EZtrackSWAN;
+            //if (model == "") type = Utility.TrackerType.HtcVive10;
+            if (model == "VIVE Tracker Pro MV") type = Utility.TrackerType.HtcVive20;
+            if (model == "VIVE Tracker 3.0 MV") type = Utility.TrackerType.HtcVive30;
+            if (model == "logitech_raw_stylus_v4.0") type = Utility.TrackerType.LogitechVRInkStylus;
+            //if (model == "") type = Utility.TrackerType.ManusSteamVRProTracker;
+            if (model == "Tundra Tracker") type = Utility.TrackerType.TundraLabsTundraTrackerStrap;
+            //if (model == "Valve SR Imp") type = Utility.TrackerType.; // 2.0 Basestation
+            return type;
+        }
+        
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
         {
             AnimatorControllerParameter parameter = new AnimatorControllerParameter

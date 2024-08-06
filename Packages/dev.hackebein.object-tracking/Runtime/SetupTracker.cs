@@ -16,7 +16,7 @@ namespace Hackebein.ObjectTracking
     public class SetupTracker
     {
         public string name;
-        public Utility.TrackerType trackerType = Utility.TrackerType.None;
+        public Utility.TrackerType trackerType;
         public int bitsRPX = 10;
         public int bitsRPY = 9;
         public int bitsRPZ = 10;
@@ -49,9 +49,10 @@ namespace Hackebein.ObjectTracking
         public int maxRRZ = 180;
         public bool debug = false;
         
-        public SetupTracker(string name)
+        public SetupTracker(string name, Utility.TrackerType trackerType = Utility.TrackerType.None)
         {
             this.name = name;
+            this.trackerType = trackerType;
         }
 
         public GameObject AppendObjects(GameObject parent)
@@ -332,25 +333,22 @@ namespace Hackebein.ObjectTracking
         {
             foreach (KeyValuePair<string[], int[]> axe in Axes())
             {
-                int accuracy = axe.Value[0];
+                int accuracy = axe.Value[0]; // bits
                 // TODO: simplification if accuracy is 8: skip
                 int accuracyBytes = accuracy / 8;
                 int accuracyBits = accuracy - (accuracyBytes * 8);
-                int offset = 0;
                 for (int i = 0; i < accuracyBytes; i++)
                 {
-                    float multiplicator = Utility.GetAAPMultiplicator(accuracy, offset, 8);
+                    float multiplicator = Utility.GetAAPMultiplicator(accuracy, 8 * i, 8);
                     motions.Add("ObjectTracking/" + name + "/R" + axe.Key[0] + "-Byte" + i + "-Float",
                         Utility.CreateClip(name + "/R" + axe.Key[0] + "-Byte" + i, "", "ObjectTracking/" + name + "/R" + axe.Key[0], multiplicator, multiplicator, assetFolder));
-                    offset += 8;
                 }
 
                 for (int i = 0; i < accuracyBits; i++)
                 {
-                    float multiplicator = Utility.GetAAPMultiplicator(accuracy, offset);
+                    float multiplicator = Utility.GetAAPMultiplicator(accuracy, 8 * accuracyBytes + i, 1);
                     motions.Add("ObjectTracking/" + name + "/R" + axe.Key[0] + "-Bit" + i + "-Float",
                         Utility.CreateClip(name + "/R" + axe.Key[0] + "-Bit" + i, "", "ObjectTracking/" + name + "/R" + axe.Key[0], multiplicator, multiplicator, assetFolder));
-                    offset += 1;
                 }
             }
         }
