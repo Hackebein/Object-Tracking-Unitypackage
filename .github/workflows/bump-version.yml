@@ -8,48 +8,22 @@ on:
         required: true
 
 jobs:
-
-  # Validate Repository Configuration
-  config:
-    runs-on: ubuntu-latest
-    outputs:
-      config_package: ${{ steps.config_package.outputs.configPackage }}
-    steps:
-
-    # Ensure that required repository variable has been created for the Package
-    - name: Validate Package Config
-      id: config_package
-      run: |
-        if [ "${{ vars.PACKAGE_NAME }}" != "" ]; then
-          echo "configPackage=true" >> $GITHUB_OUTPUT;
-        else
-          echo "configPackage=false" >> $GITHUB_OUTPUT;
-        fi
-
-  # Build and release the Package
-  # If the repository is not configured properly, this job will be skipped
   build:
-    needs: config
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      #pull-requests: write
-    env:
-      packagePath: Packages/${{ vars.PACKAGE_NAME }}
-    if: needs.config.outputs.config_package == 'true'
     steps:
 
       - name: Checkout
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
         with:
-          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
+          persist-credentials: false
           fetch-depth: 0
-          #token: ${{ secrets.TOKEN }}
       
       - name: Update package.json
         uses: jossef/action-set-json-field@890d7642122dbb2833dddd2003659bb71a2b21fe
         with:
-          file: ${{ env.packagePath }}/package.json
+          file: package.json
           field: version
           value: ${{ github.event.inputs.version }}
       
