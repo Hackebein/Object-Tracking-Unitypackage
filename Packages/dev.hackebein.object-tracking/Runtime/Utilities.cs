@@ -456,6 +456,9 @@ namespace Hackebein.ObjectTracking
                 Type type = typeof(GameObject);
                 switch (prop.Key[1].Split('.')[0])
                 {
+                    //case "Sources":
+                    //    type = typeof( /*VRC CONSTRAINT*/);
+                    //    break;
                     case "m_TranslationOffsets":
                     case "m_RotationOffsets":
                         type = typeof(ParentConstraint);

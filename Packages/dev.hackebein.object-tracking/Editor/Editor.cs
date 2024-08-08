@@ -322,15 +322,15 @@ namespace Hackebein.ObjectTracking
                     avatarEyeHeight = avatarDescriptor.ViewPosition.y;
                 }
 
-                    using (new GUILayout.HorizontalScope())
-                    {
+                using (new GUILayout.HorizontalScope())
+                {
                     GUILayout.Label("Real Height (in m)");
-                        // TODO: measure with HMD over OpenVR?
+                    // TODO: measure with HMD over OpenVR?
                     _realHeight = EditorGUILayout.FloatField(_realHeight, RelativeWidth(3 / 5f));
-                    }
+                }
 
                 if (avatarEyeHeight > 0 && _realHeight > 0)
-                        {
+                {
                     setup.scale = avatarEyeHeight / _realHeight;
                 }
             }
@@ -411,10 +411,11 @@ namespace Hackebein.ObjectTracking
                             // TODO: Implement Smoothing Types
                             EditorGUILayout.Popup(0, new string[]
                             {
-                                "Exponential (VRC Phys Bone, PC only)",
-                                "Exponential (Animator) (coming soon)", // https://notes.sleightly.dev/Smoothing-Exponential-019e9e69f617451dabd8d64554e09671
-                                "Damped (Animator) (coming soon)", // https://notes.sleightly.dev/Smoothed-Float-Half-21fe757e52da4e589e2b30997f459f44
-                                "Linear (Animator) (coming soon)", // Assets/JelleScripts/Linear/Timing
+                                "Exponential (Unity Constraint, PC only)",
+                                "Exponential (VRC Constraint) (coming soon)",
+                                "Exponential (Animator) (coming soon?)", // https://notes.sleightly.dev/Smoothing-Exponential-019e9e69f617451dabd8d64554e09671
+                                "Damped (Animator) (coming soon?)", // https://notes.sleightly.dev/Smoothed-Float-Half-21fe757e52da4e589e2b30997f459f44
+                                "Linear (Animator) (coming soon?)", // Assets/JelleScripts/Linear/Timing
                             }, RelativeWidth(3 / 5f, true));
                         }
                     }

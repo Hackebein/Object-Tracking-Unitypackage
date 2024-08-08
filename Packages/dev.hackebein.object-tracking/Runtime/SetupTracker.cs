@@ -186,14 +186,17 @@ namespace Hackebein.ObjectTracking
                 case "RX":
                     path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
                     property = "m_RotationOffsets.Array.data[0].x";
+                    // VRC Constraints: Sources.source0.ParentRotationOffset.x
                     break;
                 case "RY":
                     path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
                     property = "m_RotationOffsets.Array.data[0].y";
+                    // VRC Constraints: Sources.source0.ParentRotationOffset.y
                     break;
                 case "RZ":
                     path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
                     property = "m_RotationOffsets.Array.data[0].z";
+                    // VRC Constraints: Sources.source0.ParentRotationOffset.z
                     break;
             }
 

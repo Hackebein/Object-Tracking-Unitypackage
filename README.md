@@ -24,8 +24,7 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 ### Quick Setup (simple)
 * Avatar: select your avatar<br>
   <sup>_needs to contain Avatar Descriptor component_</sup>
-* Real eye height (in m): Your Eye height when looking straight<br>
-  <sup>_Do a selfy with foldable ruler staying on the ground_</sup>
+* Real height (in m)
 * If SteamVR is Running:
   * click reload button
   * click tracker you like to add
