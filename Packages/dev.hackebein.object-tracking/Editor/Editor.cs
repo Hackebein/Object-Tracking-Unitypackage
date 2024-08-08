@@ -15,7 +15,7 @@ namespace Hackebein.ObjectTracking
     [CustomEditor(typeof(Setup))]
     public class ObjectTrackingEditor : Editor
     {
-        private float _realEyeHeight = 1.7f;
+        private float _realHeight = 1.7f;
         private bool _updateOpenVrInfo = false;
         private Dictionary<string, string> _trackerList = new Dictionary<string, string>{
             {"Playspace", "Playspace"}
@@ -324,39 +324,16 @@ namespace Hackebein.ObjectTracking
                     avatarEyeHeight = avatarDescriptor.ViewPosition.y;
                 }
 
-                if (avatarEyeHeight > 0)
-                {
                     using (new GUILayout.HorizontalScope())
                     {
-                        GUILayout.Label("Avatar eye height");
-                        GUILayout.Label(avatarEyeHeight + "m", RelativeWidth(3 / 5f));
-                    }
-
-                    using (new GUILayout.HorizontalScope())
-                    {
-                        GUILayout.Label("Real eye height (in m)");
+                    GUILayout.Label("Real Height (in m)");
                         // TODO: measure with HMD over OpenVR?
-                        _realEyeHeight = EditorGUILayout.FloatField(_realEyeHeight, RelativeWidth(3 / 5f));
+                    _realHeight = EditorGUILayout.FloatField(_realHeight, RelativeWidth(3 / 5f));
                     }
 
-                    if (_realEyeHeight > 0)
-                    {
-                        setup.scale = avatarEyeHeight / _realEyeHeight;
-                        using (new GUILayout.HorizontalScope())
+                if (avatarEyeHeight > 0 && _realHeight > 0)
                         {
-                            GUILayout.Label("Eye height ratio");
-                            GUILayout.Label(setup.scale.ToString("F4") + "x", RelativeWidth(3 / 5f));
-                        }
-                    }
-                }
-
-                if (setup.mode == Utility.Modes.Expert)
-                {
-                    using (new GUILayout.HorizontalScope())
-                    {
-                        GUILayout.Label("Debug Mode");
-                        setup.debug = GUILayout.Toggle(setup.debug, "", RelativeWidth(3 / 5f));
-                    }
+                    setup.scale = avatarEyeHeight / _realHeight;
                 }
             }
 
