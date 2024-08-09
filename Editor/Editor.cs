@@ -15,7 +15,6 @@ namespace Hackebein.ObjectTracking
     [CustomEditor(typeof(Setup))]
     public class ObjectTrackingEditor : Editor
     {
-        private float _realHeight = 1.7f;
         private bool _updateOpenVrInfo = false;
         private Dictionary<string, string> _trackerList = new Dictionary<string, string>{
             {"Playspace", "Playspace"}
@@ -213,10 +212,6 @@ namespace Hackebein.ObjectTracking
                 {
                     GUILayout.Label("Scale:");
                     setup.scale = EditorGUILayout.FloatField(setup.scale, RelativeWidth(3 / 5f));
-                    if (setup.scale <= 0)
-                    {
-                        setup.scale = 1;
-                    }
                 }
 
                 using (new GUILayout.HorizontalScope())
@@ -326,12 +321,12 @@ namespace Hackebein.ObjectTracking
                 {
                     GUILayout.Label("Real Height (in m)");
                     // TODO: measure with HMD over OpenVR?
-                    _realHeight = EditorGUILayout.FloatField(_realHeight, RelativeWidth(3 / 5f));
+                    setup._lastRealHeight = EditorGUILayout.FloatField(setup._lastRealHeight, RelativeWidth(3 / 5f));
                 }
 
-                if (avatarEyeHeight > 0 && _realHeight > 0)
+                if (avatarEyeHeight > 0 && setup._lastRealHeight > 0)
                 {
-                    setup.scale = avatarEyeHeight / _realHeight;
+                    setup.scale = avatarEyeHeight / setup._lastRealHeight;
                 }
             }
 

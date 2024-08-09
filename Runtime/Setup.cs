@@ -24,6 +24,7 @@ namespace Hackebein.ObjectTracking
         public List<SetupTracker> trackers = new List<SetupTracker>();
         public bool debug = false;
         private AnimationClip ignoreClip;
+        public float _lastRealHeight = 1.7f;
 
         /*public void AddTracker(string name)
         {
