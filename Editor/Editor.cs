@@ -58,14 +58,14 @@ namespace Hackebein.ObjectTracking
                     // ;)
                     GUILayout.Label("^,....^ remember i love you", guiLayoutOption);
                 }
-                else if (suffix == "m" && accuracy < 0.002)
+                else if (suffix == "m" && accuracy < 0.001)
                 {
-                    GUILayout.Label("<0.002" + suffix, guiLayoutOption);
-                    GUILayout.Label("<0.8in", guiLayoutOption);
+                    GUILayout.Label("<0.001" + suffix, guiLayoutOption);
+                    GUILayout.Label("<0.04in", guiLayoutOption);
                 }
-                else if (suffix == "°" && accuracy < 0.5)
+                else if (suffix == "°" && accuracy < 0.1)
                 {
-                    GUILayout.Label("<0.5" + suffix, guiLayoutOption);
+                    GUILayout.Label("<0.1" + suffix, guiLayoutOption);
                 }
                 else if (bits > 0 && suffix == "m")
                 {
