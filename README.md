@@ -31,6 +31,7 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 * If SteamVR is not Running:
   * click "Add Tracker"
   * Serial Number: Can be obtained in SteamVR System Report
+    <sup>_not S/N, which can be printed on your tracker_</sup>
   * Tracker Type: Select how the tracker looks
 * Prefab: Shows some more information about the prefab after selecting
 * Setup your Tracking costs
