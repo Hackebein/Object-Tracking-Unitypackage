@@ -47,12 +47,25 @@ namespace Hackebein.ObjectTracking
         public int maxRRY = 180;
         public int maxLRZ = 180;
         public int maxRRZ = 180;
+        public float defaultPX = 0;
+        public float defaultPY = 0;
+        public float defaultPZ = 0;
+        public float defaultRX = 0;
+        public float defaultRY = 0;
+        public float defaultRZ = 0;
+        public bool applyLastPosition = true;
         public bool debug = false;
         
-        public SetupTracker(string name, Utility.TrackerType trackerType = Utility.TrackerType.None)
+        public SetupTracker(string name, Utility.TrackerType trackerType = Utility.TrackerType.None, float defaultPX = 0, float defaultPY = 0, float defaultPZ = 0, float defaultRX = 0, float defaultRY = 0, float defaultRZ = 0)
         {
             this.name = name;
             this.trackerType = trackerType;
+            this.defaultPX = defaultPX;
+            this.defaultPY = defaultPY;
+            this.defaultPZ = defaultPZ;
+            this.defaultRX = defaultRX;
+            this.defaultRY = defaultRY;
+            this.defaultRZ = defaultRZ;
         }
 
         public GameObject AppendObjects(GameObject parent)
@@ -144,6 +157,15 @@ namespace Hackebein.ObjectTracking
                 GameObject r_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, r.transform);
                 r_debug.name = "Gizmo";
                 r_debug.transform.localScale = new Vector3(0.04f, 0.04f, -0.04f);
+            }
+
+            // apply default transform
+            if (applyLastPosition)
+            {
+                x.transform.localPosition = new Vector3(defaultPX, 0, 0);
+                y.transform.localPosition = new Vector3(0, defaultPY, 0);
+                z.transform.localPosition = new Vector3(0, 0, defaultPZ);
+                r.transform.localRotation = Quaternion.Euler(defaultRX, defaultRY, defaultRZ);
             }
             
             return r;

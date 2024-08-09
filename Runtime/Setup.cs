@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Unity.Collections;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -25,6 +26,9 @@ namespace Hackebein.ObjectTracking
         public bool debug = false;
         private AnimationClip ignoreClip;
         public float _lastRealHeight = 1.7f;
+        public Dictionary<string[], float[]> _lastTrackerList = new Dictionary<string[], float[]>{
+            {new string[]{"Playspace", "Playspace"}, new float[]{0, 0, 0, 0, 0, 0}}
+        };
 
         /*public void AddTracker(string name)
         {

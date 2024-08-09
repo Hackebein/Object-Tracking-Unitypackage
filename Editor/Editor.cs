@@ -16,9 +16,6 @@ namespace Hackebein.ObjectTracking
     public class ObjectTrackingEditor : Editor
     {
         private bool _updateOpenVrInfo = false;
-        private Dictionary<string, string> _trackerList = new Dictionary<string, string>{
-            {"Playspace", "Playspace"}
-        };
         private DateTime _lastOpenVrUpdate = DateTime.MinValue;
         
         private int RangeNumberInputField(int value, int min, int max, GUILayoutOption[] guiLayoutOption)
@@ -132,8 +129,8 @@ namespace Hackebein.ObjectTracking
             if (_updateOpenVrInfo)
             {
                 _updateOpenVrInfo = false;
-                _trackerList = new Dictionary<string, string>{
-                    {"Playspace", "Playspace"}
+                setup._lastTrackerList = new Dictionary<string[], float[]>{
+                    {new string[]{"Playspace", "Playspace"}, new float[]{0, 0, 0, 0, 0, 0}}
                 };
                 
                 if (OpenVR.System == null)
@@ -157,27 +154,28 @@ namespace Hackebein.ObjectTracking
                 if (OpenVR.System != null)
                 {
                     _lastOpenVrUpdate = DateTime.Now;
-                    for (int deviceIndex = 0; deviceIndex < OpenVR.k_unMaxTrackedDeviceCount; deviceIndex++)
+                    var poses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
+                    OpenVR.System.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0, poses);
+
+                    for (uint deviceIndex = 0; deviceIndex < OpenVR.k_unMaxTrackedDeviceCount; deviceIndex++)
                     {
-                        ETrackedDeviceClass deviceClass = OpenVR.System.GetTrackedDeviceClass((uint)deviceIndex);
-                        if (setup.mode == Utility.Modes.Expert)
+                        ETrackedDeviceClass deviceClass = OpenVR.System.GetTrackedDeviceClass(deviceIndex);
+                        if (deviceClass == ETrackedDeviceClass.Invalid)
                         {
-                            if (deviceClass == ETrackedDeviceClass.Invalid)
-                            {
-                                continue;
-                            }
-                            
-                            _trackerList.Add(GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_SerialNumber_String), GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_ModelNumber_String));
+                            continue;
                         }
-                        else if (deviceClass == ETrackedDeviceClass.GenericTracker)
+                        if (poses[deviceIndex].bDeviceIsConnected && poses[deviceIndex].bPoseIsValid)
                         {
-                            _trackerList.Add(GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_SerialNumber_String), GetTrackedDeviceString((uint)deviceIndex, ETrackedDeviceProperty.Prop_ModelNumber_String));
+                            HmdMatrix34_t poseMatrix = poses[deviceIndex].mDeviceToAbsoluteTracking;
+                            Vector3 position = new Vector3(poseMatrix.m3, poseMatrix.m7, poseMatrix.m11);
+                            Quaternion rotation = Quaternion.LookRotation(new Vector3(-poseMatrix.m2, -poseMatrix.m6, poseMatrix.m10), new Vector3(poseMatrix.m1, poseMatrix.m5, -poseMatrix.m9));
+                            setup._lastTrackerList.Add(new string[]{GetTrackedDeviceString(deviceIndex, ETrackedDeviceProperty.Prop_SerialNumber_String), GetTrackedDeviceString(deviceIndex, ETrackedDeviceProperty.Prop_ModelNumber_String)}, new float[]{position.x, position.y, position.z, rotation.eulerAngles.x, rotation.eulerAngles.y, rotation.eulerAngles.z});
                         }
                     }
                 }
             }
             
-            Dictionary<string, string> _leftTrackerList = _trackerList;
+            Dictionary<string[], float[]> _leftTrackerList = setup._lastTrackerList;
             setup.mode = (Utility.Modes)GUILayout.Toolbar(setup.mode.GetHashCode(), Utility.ModesText);
 
             if (setup.mode == Utility.Modes.Expert)
@@ -249,7 +247,7 @@ namespace Hackebein.ObjectTracking
 
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Label("Debug Mode");
+                    GUILayout.Label("Debug Mode:");
                     setup.debug = GUILayout.Toggle(setup.debug, "", RelativeWidth(3 / 5f));
                 }
             }
@@ -333,7 +331,7 @@ namespace Hackebein.ObjectTracking
             // TODO: support GoGoLoco and similar systems
             foreach (SetupTracker tracker in setup.trackers)
             {
-                _leftTrackerList = _leftTrackerList.Where(x => x.Key != tracker.name).ToDictionary(x => x.Key, x => x.Value);
+                _leftTrackerList = _leftTrackerList.Where(x => x.Key[0] != tracker.name).ToDictionary(x => x.Key, x => x.Value);
 
                 using (new GUILayout.VerticalScope("box"))
                 {
@@ -414,6 +412,12 @@ namespace Hackebein.ObjectTracking
                             }, RelativeWidth(3 / 5f, true));
                         }
                     }
+                    
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.Label("Apply last position:");
+                        tracker.applyLastPosition = GUILayout.Toggle(tracker.applyLastPosition, "", RelativeWidth(3 / 5f));
+                    }
 
                     if (setup.mode >= Utility.Modes.Advanced)
                     {
@@ -421,56 +425,61 @@ namespace Hackebein.ObjectTracking
                         {
                             using (new GUILayout.VerticalScope())
                             {
-                                GUILayout.Label("Position", RelativeWidth((float)1 / 5, true));
+                                GUILayout.Label("Position", RelativeWidth((float)1 / 6, true));
                             }
 
                             using (new GUILayout.VerticalScope())
                             {
-                                GUILayout.Label("Bits:", RelativeWidth((float)1 / 5, true));
+                                GUILayout.Label("Bits:", RelativeWidth((float)1 / 6, true));
                                 if (setup.mode == Utility.Modes.Expert)
                                 {
                                     using (new GUILayout.HorizontalScope())
                                     {
-                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5, true));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 6, true));
                                     }
                                 }
                             }
 
                             using (new GUILayout.VerticalScope())
                             {
-                                GUILayout.Label("Min (in m):", RelativeWidth((float)1 / 5, true));
+                                GUILayout.Label("Min (in m):", RelativeWidth((float)1 / 6, true));
                                 if (setup.mode == Utility.Modes.Expert)
                                 {
                                     using (new GUILayout.HorizontalScope())
                                     {
-                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2, true));
-                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2, true));
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 6 / 2, true));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                 }
                             }
 
                             using (new GUILayout.VerticalScope())
                             {
-                                GUILayout.Label("Max (in m):", RelativeWidth((float)1 / 5, true));
+                                GUILayout.Label("Max (in m):", RelativeWidth((float)1 / 6, true));
                                 if (setup.mode == Utility.Modes.Expert)
                                 {
                                     using (new GUILayout.HorizontalScope())
                                     {
-                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2, true));
-                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2, true));
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 6 / 2, true));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                 }
                             }
 
                             using (new GUILayout.VerticalScope())
                             {
-                                GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 5, true));
+                                GUILayout.Label("Default (in m):", RelativeWidth((float)1 / 6, true));
+                            }
+
+                            using (new GUILayout.VerticalScope())
+                            {
+                                GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 6, true));
                                 if (setup.mode == Utility.Modes.Expert)
                                 {
                                     using (new GUILayout.HorizontalScope())
                                     {
-                                        GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2, true));
-                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2, true));
+                                        GUILayout.Label("Local", RelativeWidth((float)1 / 6 / 2, true));
+                                        GUILayout.Label("Remote", RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                 }
                             }
@@ -480,14 +489,14 @@ namespace Hackebein.ObjectTracking
                         {
                             using (new GUILayout.VerticalScope())
                             {
-                                GUILayout.Label("X:", RelativeWidth((float)1 / 5, true));
+                                GUILayout.Label("X:", RelativeWidth((float)1 / 6, true));
                             }
 
                             using (new GUILayout.VerticalScope())
                             {
                                 // TODO: add support for >32 bits
-                                tracker.bitsRPX = RangeNumberInputField(tracker.bitsRPX, 0, 32, RelativeWidth((float)1 / 5, true));
-                                tracker.bitsRPX = SliderNumberInputField(tracker.bitsRPX, 0, 32, RelativeWidth((float)1 / 5, true));
+                                tracker.bitsRPX = RangeNumberInputField(tracker.bitsRPX, 0, 32, RelativeWidth((float)1 / 6, true));
+                                tracker.bitsRPX = SliderNumberInputField(tracker.bitsRPX, 0, 32, RelativeWidth((float)1 / 6, true));
                             }
 
                             using (new GUILayout.VerticalScope())
@@ -496,7 +505,7 @@ namespace Hackebein.ObjectTracking
                                 {
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        tracker.minLPX = EditorGUILayout.IntField(tracker.minLPX, RelativeWidth((float)1 / 5 / 2, true));
+                                        tracker.minLPX = EditorGUILayout.IntField(tracker.minLPX, RelativeWidth((float)1 / 6 / 2, true));
                                     }
 
                                     if (tracker.bitsRPX == 0)
@@ -506,11 +515,11 @@ namespace Hackebein.ObjectTracking
 
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        tracker.minRPX = EditorGUILayout.IntField(tracker.minRPX, RelativeWidth((float)1 / 5 / 2, true));
+                                        tracker.minRPX = EditorGUILayout.IntField(tracker.minRPX, RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                     else
                                     {
-                                        tracker.minRPX = EditorGUILayout.IntField(tracker.minRPX, RelativeWidth((float)1 / 5, true));
+                                        tracker.minRPX = EditorGUILayout.IntField(tracker.minRPX, RelativeWidth((float)1 / 6, true));
                                     }
 
                                     GUI.enabled = true;
@@ -523,7 +532,7 @@ namespace Hackebein.ObjectTracking
                                 {
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        tracker.maxLPX = EditorGUILayout.IntField(tracker.maxLPX, RelativeWidth((float)1 / 5 / 2, true));
+                                        tracker.maxLPX = EditorGUILayout.IntField(tracker.maxLPX, RelativeWidth((float)1 / 6 / 2, true));
                                     }
 
                                     if (tracker.bitsRPX == 0)
@@ -533,14 +542,22 @@ namespace Hackebein.ObjectTracking
 
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        tracker.maxRPX = EditorGUILayout.IntField(tracker.maxRPX, RelativeWidth((float)1 / 5 / 2, true));
+                                        tracker.maxRPX = EditorGUILayout.IntField(tracker.maxRPX, RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                     else
                                     {
-                                        tracker.maxRPX = EditorGUILayout.IntField(tracker.maxRPX, RelativeWidth((float)1 / 5, true));
+                                        tracker.maxRPX = EditorGUILayout.IntField(tracker.maxRPX, RelativeWidth((float)1 / 6, true));
                                     }
 
                                     GUI.enabled = true;
+                                }
+                            }
+                            
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    tracker.defaultPX = EditorGUILayout.FloatField(tracker.defaultPX, RelativeWidth((float)1 / 6, true));
                                 }
                             }
 
@@ -550,12 +567,12 @@ namespace Hackebein.ObjectTracking
                                 {
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        LabelAccuracy(tracker.maxLPX - tracker.minLPX, 32, "m", RelativeWidth((float)1 / 5 / 2, true));
-                                        LabelAccuracy(tracker.maxRPX - tracker.minRPX, tracker.bitsRPX, "m", RelativeWidth((float)1 / 5 / 2, true));
+                                        LabelAccuracy(tracker.maxLPX - tracker.minLPX, 32, "m", RelativeWidth((float)1 / 6 / 2, true));
+                                        LabelAccuracy(tracker.maxRPX - tracker.minRPX, tracker.bitsRPX, "m", RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                     else
                                     {
-                                        LabelAccuracy(tracker.maxRPX - tracker.minRPX, tracker.bitsRPX, "m", RelativeWidth((float)1 / 5, true));
+                                        LabelAccuracy(tracker.maxRPX - tracker.minRPX, tracker.bitsRPX, "m", RelativeWidth((float)1 / 6, true));
                                     }
                                 }
                             }
@@ -568,14 +585,14 @@ namespace Hackebein.ObjectTracking
                             {
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    GUILayout.Label("Y:", RelativeWidth((float)1 / 5, true));
+                                    GUILayout.Label("Y:", RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
                                 {
                                     // TODO: add support for >32 bits
-                                    tracker.bitsRPY = RangeNumberInputField(tracker.bitsRPY, 0, 32, RelativeWidth((float)1 / 5, true));
-                                    tracker.bitsRPY = SliderNumberInputField(tracker.bitsRPY, 0, 32, RelativeWidth((float)1 / 5, true));
+                                    tracker.bitsRPY = RangeNumberInputField(tracker.bitsRPY, 0, 32, RelativeWidth((float)1 / 6, true));
+                                    tracker.bitsRPY = SliderNumberInputField(tracker.bitsRPY, 0, 32, RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
@@ -584,7 +601,7 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.minLPY = EditorGUILayout.IntField(tracker.minLPY, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.minLPY = EditorGUILayout.IntField(tracker.minLPY, RelativeWidth((float)1 / 6 / 2, true));
                                         }
 
                                         if (tracker.bitsRPY == 0)
@@ -594,11 +611,11 @@ namespace Hackebein.ObjectTracking
 
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.minRPY = EditorGUILayout.IntField(tracker.minRPY, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.minRPY = EditorGUILayout.IntField(tracker.minRPY, RelativeWidth((float)1 / 6 / 2, true));
                                         }
                                         else
                                         {
-                                            tracker.minRPY = EditorGUILayout.IntField(tracker.minRPY, RelativeWidth((float)1 / 5, true));
+                                            tracker.minRPY = EditorGUILayout.IntField(tracker.minRPY, RelativeWidth((float)1 / 6, true));
                                         }
 
                                         GUI.enabled = true;
@@ -611,7 +628,7 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.maxLPY = EditorGUILayout.IntField(tracker.maxLPY, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.maxLPY = EditorGUILayout.IntField(tracker.maxLPY, RelativeWidth((float)1 / 6 / 2, true));
                                         }
 
                                         if (tracker.bitsRPY == 0)
@@ -621,14 +638,22 @@ namespace Hackebein.ObjectTracking
 
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.maxRPY = EditorGUILayout.IntField(tracker.maxRPY, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.maxRPY = EditorGUILayout.IntField(tracker.maxRPY, RelativeWidth((float)1 / 6 / 2, true));
                                         }
                                         else
                                         {
-                                            tracker.maxRPY = EditorGUILayout.IntField(tracker.maxRPY, RelativeWidth((float)1 / 5, true));
+                                            tracker.maxRPY = EditorGUILayout.IntField(tracker.maxRPY, RelativeWidth((float)1 / 6, true));
                                         }
 
                                         GUI.enabled = true;
+                                    }
+                                }
+                            
+                                using (new GUILayout.VerticalScope())
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        tracker.defaultPY = EditorGUILayout.FloatField(tracker.defaultPY, RelativeWidth((float)1 / 6, true));
                                     }
                                 }
 
@@ -638,12 +663,12 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            LabelAccuracy(tracker.maxLPY - tracker.minLPY, 32, "m", RelativeWidth((float)1 / 5 / 2, true));
-                                            LabelAccuracy(tracker.maxRPY - tracker.minRPY, tracker.bitsRPY, "m", RelativeWidth((float)1 / 5 / 2, true));
+                                            LabelAccuracy(tracker.maxLPY - tracker.minLPY, 32, "m", RelativeWidth((float)1 / 6 / 2, true));
+                                            LabelAccuracy(tracker.maxRPY - tracker.minRPY, tracker.bitsRPY, "m", RelativeWidth((float)1 / 6 / 2, true));
                                         }
                                         else
                                         {
-                                            LabelAccuracy(tracker.maxRPY - tracker.minRPY, tracker.bitsRPY, "m", RelativeWidth((float)1 / 5, true));
+                                            LabelAccuracy(tracker.maxRPY - tracker.minRPY, tracker.bitsRPY, "m", RelativeWidth((float)1 / 6, true));
                                         }
                                     }
                                 }
@@ -654,14 +679,14 @@ namespace Hackebein.ObjectTracking
                         {
                             using (new GUILayout.VerticalScope())
                             {
-                                GUILayout.Label("Z:", RelativeWidth((float)1 / 5, true));
+                                GUILayout.Label("Z:", RelativeWidth((float)1 / 6, true));
                             }
 
                             using (new GUILayout.VerticalScope())
                             {
                                 // TODO: add support for >32 bits
-                                tracker.bitsRPZ = RangeNumberInputField(tracker.bitsRPZ, 0, 32, RelativeWidth((float)1 / 5, true));
-                                tracker.bitsRPZ = SliderNumberInputField(tracker.bitsRPZ, 0, 32, RelativeWidth((float)1 / 5, true));
+                                tracker.bitsRPZ = RangeNumberInputField(tracker.bitsRPZ, 0, 32, RelativeWidth((float)1 / 6, true));
+                                tracker.bitsRPZ = SliderNumberInputField(tracker.bitsRPZ, 0, 32, RelativeWidth((float)1 / 6, true));
                             }
 
                             using (new GUILayout.VerticalScope())
@@ -670,7 +695,7 @@ namespace Hackebein.ObjectTracking
                                 {
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        tracker.minLPZ = EditorGUILayout.IntField(tracker.minLPZ, RelativeWidth((float)1 / 5 / 2, true));
+                                        tracker.minLPZ = EditorGUILayout.IntField(tracker.minLPZ, RelativeWidth((float)1 / 6 / 2, true));
                                     }
 
                                     if (tracker.bitsRPZ == 0)
@@ -680,11 +705,11 @@ namespace Hackebein.ObjectTracking
 
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        tracker.minRPZ = EditorGUILayout.IntField(tracker.minRPZ, RelativeWidth((float)1 / 5 / 2, true));
+                                        tracker.minRPZ = EditorGUILayout.IntField(tracker.minRPZ, RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                     else
                                     {
-                                        tracker.minRPZ = EditorGUILayout.IntField(tracker.minRPZ, RelativeWidth((float)1 / 5, true));
+                                        tracker.minRPZ = EditorGUILayout.IntField(tracker.minRPZ, RelativeWidth((float)1 / 6, true));
                                     }
 
                                     GUI.enabled = true;
@@ -697,7 +722,7 @@ namespace Hackebein.ObjectTracking
                                 {
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        tracker.maxLPZ = EditorGUILayout.IntField(tracker.maxLPZ, RelativeWidth((float)1 / 5 / 2, true));
+                                        tracker.maxLPZ = EditorGUILayout.IntField(tracker.maxLPZ, RelativeWidth((float)1 / 6 / 2, true));
                                     }
 
                                     if (tracker.bitsRPZ == 0)
@@ -707,14 +732,22 @@ namespace Hackebein.ObjectTracking
 
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        tracker.maxRPZ = EditorGUILayout.IntField(tracker.maxRPZ, RelativeWidth((float)1 / 5 / 2, true));
+                                        tracker.maxRPZ = EditorGUILayout.IntField(tracker.maxRPZ, RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                     else
                                     {
-                                        tracker.maxRPZ = EditorGUILayout.IntField(tracker.maxRPZ, RelativeWidth((float)1 / 5, true));
+                                        tracker.maxRPZ = EditorGUILayout.IntField(tracker.maxRPZ, RelativeWidth((float)1 / 6, true));
                                     }
 
                                     GUI.enabled = true;
+                                }
+                            }
+                            
+                            using (new GUILayout.VerticalScope())
+                            {
+                                using (new GUILayout.HorizontalScope())
+                                {
+                                    tracker.defaultPZ = EditorGUILayout.FloatField(tracker.defaultPZ, RelativeWidth((float)1 / 6, true));
                                 }
                             }
 
@@ -724,12 +757,12 @@ namespace Hackebein.ObjectTracking
                                 {
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        LabelAccuracy(tracker.maxLPZ - tracker.minLPZ, 32, "m", RelativeWidth((float)1 / 5 / 2, true));
-                                        LabelAccuracy(tracker.maxRPZ - tracker.minRPZ, tracker.bitsRPZ, "m", RelativeWidth((float)1 / 5 / 2, true));
+                                        LabelAccuracy(tracker.maxLPZ - tracker.minLPZ, 32, "m", RelativeWidth((float)1 / 6 / 2, true));
+                                        LabelAccuracy(tracker.maxRPZ - tracker.minRPZ, tracker.bitsRPZ, "m", RelativeWidth((float)1 / 6 / 2, true));
                                     }
                                     else
                                     {
-                                        LabelAccuracy(tracker.maxRPZ - tracker.minRPZ, tracker.bitsRPZ, "m", RelativeWidth((float)1 / 5, true));
+                                        LabelAccuracy(tracker.maxRPZ - tracker.minRPZ, tracker.bitsRPZ, "m", RelativeWidth((float)1 / 6, true));
                                     }
                                 }
                             }
@@ -744,17 +777,17 @@ namespace Hackebein.ObjectTracking
                             {
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    GUILayout.Label("Rotation", RelativeWidth((float)1 / 5, true));
+                                    GUILayout.Label("Rotation", RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    GUILayout.Label("Bits:", RelativeWidth((float)1 / 5, true));
+                                    GUILayout.Label("Bits:", RelativeWidth((float)1 / 6, true));
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
                                         using (new GUILayout.HorizontalScope())
                                         {
-                                            GUILayout.Label("Remote", RelativeWidth((float)1 / 5, true));
+                                            GUILayout.Label("Remote", RelativeWidth((float)1 / 6, true));
                                         }
                                     }
                                 }
@@ -763,45 +796,50 @@ namespace Hackebein.ObjectTracking
                                 {
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
-                                        GUILayout.Label("Min (in °):", RelativeWidth((float)1 / 5, true));
+                                        GUILayout.Label("Min (in °):", RelativeWidth((float)1 / 6, true));
                                         using (new GUILayout.HorizontalScope())
                                         {
-                                            GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2, true));
-                                            GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2, true));
-                                        }
-                                    }
-                                    else
-                                    {
-                                        GUILayout.Label("", RelativeWidth((float)1 / 5, true));
-                                    }
-                                }
-
-                                using (new GUILayout.VerticalScope())
-                                {
-                                    if (setup.mode == Utility.Modes.Expert)
-                                    {
-                                        GUILayout.Label("Max (in °):", RelativeWidth((float)1 / 5, true));
-                                        using (new GUILayout.HorizontalScope())
-                                        {
-                                            GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2, true));
-                                            GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2, true));
+                                            GUILayout.Label("Local", RelativeWidth((float)1 / 6 / 2, true));
+                                            GUILayout.Label("Remote", RelativeWidth((float)1 / 6 / 2, true));
                                         }
                                     }
                                     else
                                     {
-                                        GUILayout.Label("", RelativeWidth((float)1 / 5, true));
+                                        GUILayout.Label("", RelativeWidth((float)1 / 6, true));
                                     }
                                 }
 
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 5, true));
+                                    if (setup.mode == Utility.Modes.Expert)
+                                    {
+                                        GUILayout.Label("Max (in °):", RelativeWidth((float)1 / 6, true));
+                                        using (new GUILayout.HorizontalScope())
+                                        {
+                                            GUILayout.Label("Local", RelativeWidth((float)1 / 6 / 2, true));
+                                            GUILayout.Label("Remote", RelativeWidth((float)1 / 6 / 2, true));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        GUILayout.Label("", RelativeWidth((float)1 / 6, true));
+                                    }
+                                }
+
+                                using (new GUILayout.VerticalScope())
+                                {
+                                    GUILayout.Label("Default (in m):", RelativeWidth((float)1 / 6, true));
+                                }
+
+                                using (new GUILayout.VerticalScope())
+                                {
+                                    GUILayout.Label("Accuracy:", RelativeWidth((float)1 / 6, true));
                                     if (setup.mode == Utility.Modes.Expert)
                                     {
                                         using (new GUILayout.HorizontalScope())
                                         {
-                                            GUILayout.Label("Local", RelativeWidth((float)1 / 5 / 2, true));
-                                            GUILayout.Label("Remote", RelativeWidth((float)1 / 5 / 2, true));
+                                            GUILayout.Label("Local", RelativeWidth((float)1 / 6 / 2, true));
+                                            GUILayout.Label("Remote", RelativeWidth((float)1 / 6 / 2, true));
                                         }
                                     }
                                 }
@@ -811,13 +849,13 @@ namespace Hackebein.ObjectTracking
                             {
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    GUILayout.Label("X:", RelativeWidth((float)1 / 5, true));
+                                    GUILayout.Label("X:", RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    tracker.bitsRRX = RangeNumberInputField(tracker.bitsRRX, 0, 32, RelativeWidth((float)1 / 5, true));
-                                    tracker.bitsRRX = SliderNumberInputField(tracker.bitsRRX, 0, 32, RelativeWidth((float)1 / 5, true));
+                                    tracker.bitsRRX = RangeNumberInputField(tracker.bitsRRX, 0, 32, RelativeWidth((float)1 / 6, true));
+                                    tracker.bitsRRX = SliderNumberInputField(tracker.bitsRRX, 0, 32, RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
@@ -826,18 +864,18 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.minLRX = EditorGUILayout.IntField(tracker.minLRX, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.minLRX = EditorGUILayout.IntField(tracker.minLRX, RelativeWidth((float)1 / 6 / 2, true));
                                             if (tracker.bitsRRX == 0)
                                             {
                                                 GUI.enabled = false;
                                             }
 
-                                            tracker.minRRX = EditorGUILayout.IntField(tracker.minRRX, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.minRRX = EditorGUILayout.IntField(tracker.minRRX, RelativeWidth((float)1 / 6 / 2, true));
                                             GUI.enabled = true;
                                         }
                                         else
                                         {
-                                            GUILayout.Label("", RelativeWidth((float)1 / 5, true));
+                                            GUILayout.Label("", RelativeWidth((float)1 / 6, true));
                                         }
                                     }
                                 }
@@ -848,19 +886,27 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.maxLRX = EditorGUILayout.IntField(tracker.maxLRX, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.maxLRX = EditorGUILayout.IntField(tracker.maxLRX, RelativeWidth((float)1 / 6 / 2, true));
                                             if (tracker.bitsRRX == 0)
                                             {
                                                 GUI.enabled = false;
                                             }
 
-                                            tracker.maxRRX = EditorGUILayout.IntField(tracker.maxRRX, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.maxRRX = EditorGUILayout.IntField(tracker.maxRRX, RelativeWidth((float)1 / 6 / 2, true));
                                             GUI.enabled = true;
                                         }
                                         else
                                         {
-                                            GUILayout.Label("", RelativeWidth((float)1 / 5, true));
+                                            GUILayout.Label("", RelativeWidth((float)1 / 6, true));
                                         }
+                                    }
+                                }
+                            
+                                using (new GUILayout.VerticalScope())
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        tracker.defaultRX = EditorGUILayout.FloatField(tracker.defaultRX, RelativeWidth((float)1 / 6, true));
                                     }
                                 }
 
@@ -870,12 +916,12 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            LabelAccuracy(tracker.maxLRX - tracker.minLRX, 32, "°", RelativeWidth((float)1 / 5 / 2, true));
-                                            LabelAccuracy(tracker.maxRRX - tracker.minRRX, tracker.bitsRRX, "°", RelativeWidth((float)1 / 5 / 2, true));
+                                            LabelAccuracy(tracker.maxLRX - tracker.minLRX, 32, "°", RelativeWidth((float)1 / 6 / 2, true));
+                                            LabelAccuracy(tracker.maxRRX - tracker.minRRX, tracker.bitsRRX, "°", RelativeWidth((float)1 / 6 / 2, true));
                                         }
                                         else
                                         {
-                                            LabelAccuracy(tracker.maxRRX - tracker.minRRX, tracker.bitsRRX, "°", RelativeWidth((float)1 / 5, true));
+                                            LabelAccuracy(tracker.maxRRX - tracker.minRRX, tracker.bitsRRX, "°", RelativeWidth((float)1 / 6, true));
                                         }
                                     }
                                 }
@@ -885,13 +931,13 @@ namespace Hackebein.ObjectTracking
                             {
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    GUILayout.Label("Y:", RelativeWidth((float)1 / 5, true));
+                                    GUILayout.Label("Y:", RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    tracker.bitsRRY = RangeNumberInputField(tracker.bitsRRY, 0, 32, RelativeWidth((float)1 / 5, true));
-                                    tracker.bitsRRY = SliderNumberInputField(tracker.bitsRRY, 0, 32, RelativeWidth((float)1 / 5, true));
+                                    tracker.bitsRRY = RangeNumberInputField(tracker.bitsRRY, 0, 32, RelativeWidth((float)1 / 6, true));
+                                    tracker.bitsRRY = SliderNumberInputField(tracker.bitsRRY, 0, 32, RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
@@ -900,18 +946,18 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.minLRY = EditorGUILayout.IntField(tracker.minLRY, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.minLRY = EditorGUILayout.IntField(tracker.minLRY, RelativeWidth((float)1 / 6 / 2, true));
                                             if (tracker.bitsRRY == 0)
                                             {
                                                 GUI.enabled = false;
                                             }
 
-                                            tracker.minRRY = EditorGUILayout.IntField(tracker.minRRY, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.minRRY = EditorGUILayout.IntField(tracker.minRRY, RelativeWidth((float)1 / 6 / 2, true));
                                             GUI.enabled = true;
                                         }
                                         else
                                         {
-                                            GUILayout.Label("", RelativeWidth((float)1 / 5, true));
+                                            GUILayout.Label("", RelativeWidth((float)1 / 6, true));
                                         }
                                     }
                                 }
@@ -922,19 +968,27 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.maxLRY = EditorGUILayout.IntField(tracker.maxLRY, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.maxLRY = EditorGUILayout.IntField(tracker.maxLRY, RelativeWidth((float)1 / 6 / 2, true));
                                             if (tracker.bitsRRY == 0)
                                             {
                                                 GUI.enabled = false;
                                             }
 
-                                            tracker.maxRRY = EditorGUILayout.IntField(tracker.maxRRY, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.maxRRY = EditorGUILayout.IntField(tracker.maxRRY, RelativeWidth((float)1 / 6 / 2, true));
                                             GUI.enabled = true;
                                         }
                                         else
                                         {
-                                            GUILayout.Label("", RelativeWidth((float)1 / 5, true));
+                                            GUILayout.Label("", RelativeWidth((float)1 / 6, true));
                                         }
+                                    }
+                                }
+                            
+                                using (new GUILayout.VerticalScope())
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        tracker.defaultRY = EditorGUILayout.FloatField(tracker.defaultRY, RelativeWidth((float)1 / 6, true));
                                     }
                                 }
 
@@ -944,12 +998,12 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            LabelAccuracy(tracker.maxLRY - tracker.minLRY, 32, "°", RelativeWidth((float)1 / 5 / 2, true));
-                                            LabelAccuracy(tracker.maxRRY - tracker.minRRY, tracker.bitsRRY, "°", RelativeWidth((float)1 / 5 / 2, true));
+                                            LabelAccuracy(tracker.maxLRY - tracker.minLRY, 32, "°", RelativeWidth((float)1 / 6 / 2, true));
+                                            LabelAccuracy(tracker.maxRRY - tracker.minRRY, tracker.bitsRRY, "°", RelativeWidth((float)1 / 6 / 2, true));
                                         }
                                         else
                                         {
-                                            LabelAccuracy(tracker.maxRRY - tracker.minRRY, tracker.bitsRRY, "°", RelativeWidth((float)1 / 5, true));
+                                            LabelAccuracy(tracker.maxRRY - tracker.minRRY, tracker.bitsRRY, "°", RelativeWidth((float)1 / 6, true));
                                         }
                                     }
                                 }
@@ -959,13 +1013,13 @@ namespace Hackebein.ObjectTracking
                             {
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    GUILayout.Label("Z:", RelativeWidth((float)1 / 5, true));
+                                    GUILayout.Label("Z:", RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    tracker.bitsRRZ = RangeNumberInputField(tracker.bitsRRZ, 0, 32, RelativeWidth((float)1 / 5, true));
-                                    tracker.bitsRRZ = SliderNumberInputField(tracker.bitsRRZ, 0, 32, RelativeWidth((float)1 / 5, true));
+                                    tracker.bitsRRZ = RangeNumberInputField(tracker.bitsRRZ, 0, 32, RelativeWidth((float)1 / 6, true));
+                                    tracker.bitsRRZ = SliderNumberInputField(tracker.bitsRRZ, 0, 32, RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
@@ -974,18 +1028,18 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.minLRZ = EditorGUILayout.IntField(tracker.minLRZ, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.minLRZ = EditorGUILayout.IntField(tracker.minLRZ, RelativeWidth((float)1 / 6 / 2, true));
                                             if (tracker.bitsRRZ == 0)
                                             {
                                                 GUI.enabled = false;
                                             }
 
-                                            tracker.minRRZ = EditorGUILayout.IntField(tracker.minRRZ, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.minRRZ = EditorGUILayout.IntField(tracker.minRRZ, RelativeWidth((float)1 / 6 / 2, true));
                                             GUI.enabled = true;
                                         }
                                         else
                                         {
-                                            GUILayout.Label("", RelativeWidth((float)1 / 5, true));
+                                            GUILayout.Label("", RelativeWidth((float)1 / 6, true));
                                         }
                                     }
                                 }
@@ -996,19 +1050,27 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            tracker.maxLRZ = EditorGUILayout.IntField(tracker.maxLRZ, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.maxLRZ = EditorGUILayout.IntField(tracker.maxLRZ, RelativeWidth((float)1 / 6 / 2, true));
                                             if (tracker.bitsRRZ == 0)
                                             {
                                                 GUI.enabled = false;
                                             }
 
-                                            tracker.maxRRZ = EditorGUILayout.IntField(tracker.maxRRZ, RelativeWidth((float)1 / 5 / 2, true));
+                                            tracker.maxRRZ = EditorGUILayout.IntField(tracker.maxRRZ, RelativeWidth((float)1 / 6 / 2, true));
                                             GUI.enabled = true;
                                         }
                                         else
                                         {
-                                            GUILayout.Label("", RelativeWidth((float)1 / 5, true));
+                                            GUILayout.Label("", RelativeWidth((float)1 / 6, true));
                                         }
+                                    }
+                                }
+                            
+                                using (new GUILayout.VerticalScope())
+                                {
+                                    using (new GUILayout.HorizontalScope())
+                                    {
+                                        tracker.defaultRZ = EditorGUILayout.FloatField(tracker.defaultRZ, RelativeWidth((float)1 / 6, true));
                                     }
                                 }
 
@@ -1018,12 +1080,12 @@ namespace Hackebein.ObjectTracking
                                     {
                                         if (setup.mode == Utility.Modes.Expert)
                                         {
-                                            LabelAccuracy(tracker.maxLRZ - tracker.minLRZ, 32, "°", RelativeWidth((float)1 / 5 / 2, true));
-                                            LabelAccuracy(tracker.maxRRZ - tracker.minRRZ, tracker.bitsRRZ, "°", RelativeWidth((float)1 / 5 / 2, true));
+                                            LabelAccuracy(tracker.maxLRZ - tracker.minLRZ, 32, "°", RelativeWidth((float)1 / 6 / 2, true));
+                                            LabelAccuracy(tracker.maxRRZ - tracker.minRRZ, tracker.bitsRRZ, "°", RelativeWidth((float)1 / 6 / 2, true));
                                         }
                                         else
                                         {
-                                            LabelAccuracy(tracker.maxRRZ - tracker.minRRZ, tracker.bitsRRZ, "°", RelativeWidth((float)1 / 5, true));
+                                            LabelAccuracy(tracker.maxRRZ - tracker.minRRZ, tracker.bitsRRZ, "°", RelativeWidth((float)1 / 6, true));
                                         }
                                     }
                                 }
@@ -1032,6 +1094,7 @@ namespace Hackebein.ObjectTracking
                     }
                     else
                     {
+                        //
                         if (tracker.name == "Playspace")
                         {
                             
@@ -1208,16 +1271,16 @@ namespace Hackebein.ObjectTracking
                 
                 GUILayout.BeginHorizontal();
                 int i = 0;
-                foreach (KeyValuePair<string, string> tracker in _leftTrackerList)
+                foreach (KeyValuePair<string[], float[]> tracker in _leftTrackerList)
                 {
                     if (i % 2 == 0)
                     {
                         GUILayout.EndHorizontal();
                         GUILayout.BeginHorizontal();
                     }
-                    if (GUILayout.Button("Add " + tracker.Value + " (" + tracker.Key + ")", RelativeWidth((float)1 / 2, true)))
+                    if (GUILayout.Button(tracker.Key[1] + " (" + tracker.Key[0] + ")", RelativeWidth((float)1 / 2, true)))
                     {
-                        setup.trackers.Add(new SetupTracker(tracker.Key, Utility.TrackerModelNumberToTrackerType(tracker.Value)));
+                        setup.trackers.Add(new SetupTracker(tracker.Key[0], Utility.TrackerModelNumberToTrackerType(tracker.Key[1]), tracker.Value[0], tracker.Value[1], tracker.Value[2], tracker.Value[3], tracker.Value[4], tracker.Value[5]));
                     }
                     i++;
                 }
@@ -1292,6 +1355,12 @@ namespace Hackebein.ObjectTracking
                 {
                     isCreateable = false;
                     GUILayout.Label("You have no Tracker or your Tracker names are not unique!", RelativeWidth((float)1 / 2));
+                }
+                
+                if (setup.scale <= 0)
+                {
+                    isCreateable = false;
+                    GUILayout.Label("Scale is not set!", RelativeWidth((float)1 / 2));
                 }
             }
 
