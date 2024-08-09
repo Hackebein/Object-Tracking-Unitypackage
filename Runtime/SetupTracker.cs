@@ -83,6 +83,7 @@ namespace Hackebein.ObjectTracking
             constraint.constraintActive = true;
             constraint.enabled = true;
             constraint.locked = true;
+            constraint.translationAxis = Axis.None;
 
             ConstraintSource source1 = new ConstraintSource
             {
@@ -94,7 +95,7 @@ namespace Hackebein.ObjectTracking
             ConstraintSource source2 = new ConstraintSource
             {
                 // TODO: add linear interpolation
-                weight = 3,
+                weight = 0,
                 sourceTransform = r.transform
             };
             constraint.AddSource(source2);
@@ -165,7 +166,7 @@ namespace Hackebein.ObjectTracking
                 x.transform.localPosition = new Vector3(defaultPX, 0, 0);
                 y.transform.localPosition = new Vector3(0, defaultPY, 0);
                 z.transform.localPosition = new Vector3(0, 0, defaultPZ);
-                r.transform.localRotation = Quaternion.Euler(defaultRX, defaultRY, defaultRZ);
+                constraint.SetRotationOffset(0, Quaternion.Euler(defaultRX, defaultRY, defaultRZ).eulerAngles);
             }
             
             return r;
@@ -393,6 +394,7 @@ namespace Hackebein.ObjectTracking
                 reset.Add(new[] { axe.Key[1], "m_LocalScale.x" }, new[] { 1f, 1f });
                 reset.Add(new[] { axe.Key[1], "m_LocalScale.y" }, new[] { 1f, 1f });
                 reset.Add(new[] { axe.Key[1], "m_LocalScale.z" }, new[] { 1f, 1f });
+                reset.Add(new[] { axe.Key[1], "m_RotationOffsets.Array.data[1].weight" }, new[] { 3f, 3f });
             }
         }
 
