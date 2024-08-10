@@ -1,4 +1,4 @@
-#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
+﻿#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,6 +22,7 @@ namespace Hackebein.ObjectTracking
         public AnimatorController controller;
         public VRCExpressionParameters expressionParameters;
         public float scale = 1.0f;
+        public float zOffset = 0.0f;
         public List<SetupTracker> trackers = new List<SetupTracker>();
         public bool debug = false;
         private AnimationClip ignoreClip;
@@ -174,7 +175,7 @@ namespace Hackebein.ObjectTracking
                 tracker.AppendAnimatorControllerParameters(controller);
             }
 
-            // Object for scaling
+            // Object for scaling and z-offset
             GameObject scaleGameObject = Utility.FindOrCreateEmptyGameObject("ObjectTracking", rootGameObject);
             Utility.ResetGameObject(scaleGameObject);
 
@@ -187,6 +188,9 @@ namespace Hackebein.ObjectTracking
             // Set scale
             scaleGameObject.transform.localScale = new Vector3(scale, scale, scale);
             
+            // TODO: check if this needs to be applied before or after scaling.
+            scaleGameObject.transform.localPosition = new Vector3(0, 0, zOffset);
+
             // Animation Controller
             CreateProcessingLayer();
             CreateStabilizationLayer();

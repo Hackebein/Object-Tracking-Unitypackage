@@ -214,6 +214,12 @@ namespace Hackebein.ObjectTracking
 
                 using (new GUILayout.HorizontalScope())
                 {
+                    GUILayout.Label("Z-Offset:");
+                    setup.zOffset = EditorGUILayout.FloatField(setup.zOffset, RelativeWidth(3 / 5f));
+                }
+
+                using (new GUILayout.HorizontalScope())
+                {
                     GUILayout.Label("Asset folder:");
                     using (new GUILayout.HorizontalScope(RelativeWidth(3 / 5f)))
                     {
@@ -283,6 +289,7 @@ namespace Hackebein.ObjectTracking
                 {
                     setup.rootGameObject = avatarDescriptor.gameObject;
                     setup.expressionParameters = avatarDescriptor.expressionParameters;
+                    setup.zOffset = avatarDescriptor.ViewPosition.z;
                     VRCAvatarDescriptor.CustomAnimLayer[] customAnimLayers = avatarDescriptor.baseAnimationLayers;
                     for (int i = 0; i < customAnimLayers.Length; i++)
                     {
