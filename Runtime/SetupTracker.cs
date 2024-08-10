@@ -386,7 +386,7 @@ namespace Hackebein.ObjectTracking
                 reset.Add(new[] { axe.Key[1], "m_IsActive" }, new[] { 1f, 1f });
                 reset.Add(new[] { axe.Key[1], "m_LocalPosition.x" }, new[] { 0f, 0f });
                 reset.Add(new[] { axe.Key[1], "m_LocalPosition.y" }, new[] { 0f, 0f });
-                reset.Add(new[] { axe.Key[1], "m_LocalPosition.z" }, new[] { 0f, 0f });
+                reset.Add(new[] { axe.Key[1], "m_LocalPosition.z" }, new[] { zOffset, zOffset });
                 reset.Add(new[] { axe.Key[1], "m_LocalRotation.x" }, new[] { 0f, 0f });
                 reset.Add(new[] { axe.Key[1], "m_LocalRotation.y" }, new[] { 0f, 0f });
                 reset.Add(new[] { axe.Key[1], "m_LocalRotation.z" }, new[] { 0f, 0f });
