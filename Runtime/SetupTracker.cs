@@ -394,7 +394,9 @@ namespace Hackebein.ObjectTracking
                 reset.Add(new[] { axe.Key[1], "m_LocalScale.x" }, new[] { 1f, 1f });
                 reset.Add(new[] { axe.Key[1], "m_LocalScale.y" }, new[] { 1f, 1f });
                 reset.Add(new[] { axe.Key[1], "m_LocalScale.z" }, new[] { 1f, 1f });
-                reset.Add(new[] { axe.Key[1], "m_RotationOffsets.Array.data[1].weight" }, new[] { 3f, 3f });
+                if (axe.Key[0] == "PX") {
+                    reset.Add(new[] { axe.Key[1], "m_RotationOffsets.Array.data[1].weight" }, new[] { 3f, 3f });
+                }
             }
         }
 
