@@ -421,7 +421,7 @@ namespace Hackebein.ObjectTracking
                         }
                     }
                     
-                    if (tracker.defaultPX != 0 && tracker.defaultPY != 0 && tracker.defaultPZ != 0 && tracker.defaultRX != 0 && tracker.defaultRY != 0 && tracker.defaultRZ != 0)
+                    if (tracker.defaultPX != 0 || tracker.defaultPY != 0 || tracker.defaultPZ != 0 || tracker.defaultRX != 0 || tracker.defaultRY != 0 || tracker.defaultRZ != 0)
                     {
                         using (new GUILayout.HorizontalScope())
                         {
