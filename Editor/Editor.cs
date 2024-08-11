@@ -385,7 +385,7 @@ namespace Hackebein.ObjectTracking
                     {
                         using (new GUILayout.HorizontalScope())
                         {
-                            GUILayout.Label("Debug Mode");
+                            GUILayout.Label("Debug Mode:");
                             tracker.debug = GUILayout.Toggle(tracker.debug, "", RelativeWidth(3 / 5f, true));
                         }
                     }
