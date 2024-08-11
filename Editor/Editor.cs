@@ -289,7 +289,7 @@ namespace Hackebein.ObjectTracking
                 {
                     setup.rootGameObject = avatarDescriptor.gameObject;
                     setup.expressionParameters = avatarDescriptor.expressionParameters;
-                    setup.zOffset = avatarDescriptor.ViewPosition.z;
+                    setup.zOffset = avatarDescriptor.ViewPosition.z * 1.5f;
                     VRCAvatarDescriptor.CustomAnimLayer[] customAnimLayers = avatarDescriptor.baseAnimationLayers;
                     for (int i = 0; i < customAnimLayers.Length; i++)
                     {
@@ -331,7 +331,8 @@ namespace Hackebein.ObjectTracking
 
                 if (avatarEyeHeight > 0 && setup._lastRealHeight > 0)
                 {
-                    setup.scale = avatarEyeHeight / setup._lastRealHeight;
+                    float eyeLevelToBodyHeightRatio = 1.075f; // +7,5%
+                    setup.scale = avatarEyeHeight / (setup._lastRealHeight / eyeLevelToBodyHeightRatio);
                 }
             }
 
@@ -420,10 +421,13 @@ namespace Hackebein.ObjectTracking
                         }
                     }
                     
-                    using (new GUILayout.HorizontalScope())
+                    if (tracker.defaultPX != 0 && tracker.defaultPY != 0 && tracker.defaultPZ != 0 && tracker.defaultRX != 0 && tracker.defaultRY != 0 && tracker.defaultRZ != 0)
                     {
-                        GUILayout.Label("Apply last position:");
-                        tracker.applyLastPosition = GUILayout.Toggle(tracker.applyLastPosition, "", RelativeWidth(3 / 5f));
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("Apply last position:");
+                            tracker.applyLastPosition = GUILayout.Toggle(tracker.applyLastPosition, "", RelativeWidth(3 / 5f));
+                        }
                     }
 
                     if (setup.mode >= Utility.Modes.Advanced)

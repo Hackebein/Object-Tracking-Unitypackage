@@ -245,7 +245,7 @@ namespace Hackebein.ObjectTracking
                 { new[] { "ObjectTracking", "m_IsActive" }, new[] { 1f, 1f } },
                 { new[] { "ObjectTracking", "m_LocalPosition.x" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalPosition.y" }, new[] { 0f, 0f } },
-                { new[] { "ObjectTracking", "m_LocalPosition.z" }, new[] { 0f, 0f } },
+                { new[] { "ObjectTracking", "m_LocalPosition.z" }, new[] { zOffset, zOffset } },
                 { new[] { "ObjectTracking", "m_LocalRotation.x" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalRotation.y" }, new[] { 0f, 0f } },
                 { new[] { "ObjectTracking", "m_LocalRotation.z" }, new[] { 0f, 0f } },
