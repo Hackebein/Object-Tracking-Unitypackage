@@ -64,3 +64,5 @@ jobs:
             ${{ env.packagePath }}/package.json
           tag_name: ${{ env.version }}
           token:  ${{ secrets.TOKEN }}
+          draft: true
+          generate_release_notes: true
