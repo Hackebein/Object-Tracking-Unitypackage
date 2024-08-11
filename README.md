@@ -32,10 +32,10 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
   * click "Add Tracker"
   * Serial Number: Can be obtained in SteamVR System Report
     <sup>_not S/N, which can be printed on your tracker_</sup>
-  * Tracker Type: Select how the tracker looks
+  * Tracker Type: Select how the tracker looks in editor
 * Prefab: Shows some more information about the prefab after selecting
 * Setup your Tracking costs
-* Press Create: Tracker gets generated at 0, 0
+* Press Create: Tracker gets generated at 0, 0 if "Apply last position" is unchecked
 * Align your object inside the 4th object with the same name at 1:1 IRL scale
 
 Video: https://youtu.be/oxvaUqVMznQ
