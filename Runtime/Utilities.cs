@@ -459,6 +459,7 @@ namespace Hackebein.ObjectTracking
                     //case "Sources":
                     //    type = typeof( /*VRC CONSTRAINT*/);
                     //    break;
+                    case "m_Sources":
                     case "m_TranslationOffsets":
                     case "m_RotationOffsets":
                         type = typeof(ParentConstraint);

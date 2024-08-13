@@ -37,7 +37,7 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 * Hide beyond limits: Hides the object if it goes beyond maximum range
 * Setup your Tracking costs
 * Press Create: Tracker gets generated at 0, 0 if "Apply last position" is unchecked
-* Align your object inside the 4th object with the same name at 1:1 IRL scale
+* Align your object inside the object with the same serial number at 1:1 IRL scale
 
 Video: https://youtu.be/oxvaUqVMznQ
 

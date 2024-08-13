@@ -71,32 +71,33 @@ namespace Hackebein.ObjectTracking
 
         public GameObject AppendObjects(GameObject parent)
         {
+            GameObject ignore = Utility.FindOrCreateGameObject("_ignore", parent);
+            
             // Objects for position (x, y, z)
-            GameObject x = Utility.FindOrCreateEmptyGameObject(name, parent);
+            GameObject x = Utility.FindOrCreateEmptyGameObject(name, ignore);
             GameObject y = Utility.FindOrCreateEmptyGameObject(name, x);
             GameObject z = Utility.FindOrCreateEmptyGameObject(name, y);
 
             // Object with constraint for rotation (x, y, z)
-            GameObject r = Utility.FindOrCreateEmptyGameObject(name, z);
+            GameObject r = Utility.FindOrCreateEmptyGameObject(name, parent);
 
             // Constraint
+            // TODO: add linear interpolation
             ParentConstraint constraint = r.AddComponent<ParentConstraint>();
             constraint.constraintActive = true;
             constraint.enabled = true;
             constraint.locked = true;
-            constraint.translationAxis = Axis.None;
 
             ConstraintSource source1 = new ConstraintSource
             {
-                weight = 1,
+                weight = 0.05f,
                 sourceTransform = z.transform
             };
             constraint.AddSource(source1);
 
             ConstraintSource source2 = new ConstraintSource
             {
-                // TODO: add linear interpolation
-                weight = 0,
+                weight = 1,
                 sourceTransform = r.transform
             };
             constraint.AddSource(source2);
@@ -167,6 +168,8 @@ namespace Hackebein.ObjectTracking
                 x.transform.localPosition = new Vector3(defaultPX, 0, 0);
                 y.transform.localPosition = new Vector3(0, defaultPY, 0);
                 z.transform.localPosition = new Vector3(0, 0, defaultPZ);
+                r.transform.localPosition = new Vector3(defaultPX, defaultPY, defaultPZ);
+                r.transform.localRotation = Quaternion.Euler(defaultRX, defaultRY, defaultRZ);
                 constraint.SetRotationOffset(0, Quaternion.Euler(defaultRX, defaultRY, defaultRZ).eulerAngles);
             }
             
@@ -196,29 +199,29 @@ namespace Hackebein.ObjectTracking
             switch (name)
             {
                 case "PX":
-                    path = "ObjectTracking/" + this.name;
+                    path = "ObjectTracking/_ignore/" + this.name;
                     property = "m_LocalPosition.x";
                     break;
                 case "PY":
-                    path = "ObjectTracking/" + this.name + "/" + this.name;
+                    path = "ObjectTracking/_ignore/" + this.name + "/" + this.name;
                     property = "m_LocalPosition.y";
                     break;
                 case "PZ":
-                    path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name;
+                    path = "ObjectTracking/_ignore/" + this.name + "/" + this.name + "/" + this.name;
                     property = "m_LocalPosition.z";
                     break;
                 case "RX":
-                    path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
+                    path = "ObjectTracking/" + this.name;
                     property = "m_RotationOffsets.Array.data[0].x";
                     // VRC Constraints: Sources.source0.ParentRotationOffset.x
                     break;
                 case "RY":
-                    path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
+                    path = "ObjectTracking/" + this.name;
                     property = "m_RotationOffsets.Array.data[0].y";
                     // VRC Constraints: Sources.source0.ParentRotationOffset.y
                     break;
                 case "RZ":
-                    path = "ObjectTracking/" + this.name + "/" + this.name + "/" + this.name + "/" + this.name;
+                    path = "ObjectTracking/" + this.name;
                     property = "m_RotationOffsets.Array.data[0].z";
                     // VRC Constraints: Sources.source0.ParentRotationOffset.z
                     break;
@@ -547,19 +550,19 @@ namespace Hackebein.ObjectTracking
         {
             foreach (KeyValuePair<string[], int[]> axe in Axes())
             {
-                reset.Add(new[] { axe.Key[1], "m_IsActive" }, new[] { 1f, 1f });
-                reset.Add(new[] { axe.Key[1], "m_LocalPosition.x" }, new[] { 0f, 0f });
-                reset.Add(new[] { axe.Key[1], "m_LocalPosition.y" }, new[] { 0f, 0f });
-                reset.Add(new[] { axe.Key[1], "m_LocalPosition.z" }, new[] { 0f, 0f });
-                reset.Add(new[] { axe.Key[1], "m_LocalRotation.x" }, new[] { 0f, 0f });
-                reset.Add(new[] { axe.Key[1], "m_LocalRotation.y" }, new[] { 0f, 0f });
-                reset.Add(new[] { axe.Key[1], "m_LocalRotation.z" }, new[] { 0f, 0f });
-                reset.Add(new[] { axe.Key[1], "m_LocalRotation.w" }, new[] { 1f, 1f });
-                reset.Add(new[] { axe.Key[1], "m_LocalScale.x" }, new[] { 1f, 1f });
-                reset.Add(new[] { axe.Key[1], "m_LocalScale.y" }, new[] { 1f, 1f });
-                reset.Add(new[] { axe.Key[1], "m_LocalScale.z" }, new[] { 1f, 1f });
-                if (axe.Key[0] == "PX") {
-                    reset.Add(new[] { axe.Key[1], "m_RotationOffsets.Array.data[1].weight" }, new[] { 3f, 3f });
+                if (axe.Key[0].StartsWith("P") || axe.Key[0] == "RX")
+                {
+                    reset.Add(new[] { axe.Key[1], "m_IsActive" }, new[] { 1f, 1f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalPosition.x" }, new[] { 0f, 0f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalPosition.y" }, new[] { 0f, 0f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalPosition.z" }, new[] { 0f, 0f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalRotation.x" }, new[] { 0f, 0f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalRotation.y" }, new[] { 0f, 0f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalRotation.z" }, new[] { 0f, 0f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalRotation.w" }, new[] { 1f, 1f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalScale.x" }, new[] { 1f, 1f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalScale.y" }, new[] { 1f, 1f });
+                    reset.Add(new[] { axe.Key[1], "m_LocalScale.z" }, new[] { 1f, 1f });
                 }
             }
         }
