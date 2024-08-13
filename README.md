@@ -34,6 +34,7 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
     <sup>_not S/N, which can be printed on your tracker_</sup>
   * Tracker Type: Select how the tracker looks in editor
 * Prefab: Shows some more information about the prefab after selecting
+* Hide beyond limits: Hides the object if it goes beyond maximum range
 * Setup your Tracking costs
 * Press Create: Tracker gets generated at 0, 0 if "Apply last position" is unchecked
 * Align your object inside the 4th object with the same name at 1:1 IRL scale
