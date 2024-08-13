@@ -1,4 +1,4 @@
-﻿#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
+#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,6 +24,7 @@ namespace Hackebein.ObjectTracking
         public float scale = 1.0f;
         public float zOffset = 0.0f;
         public List<SetupTracker> trackers = new List<SetupTracker>();
+        public bool stabilizationSupport = true;
         public bool debug = false;
         private AnimationClip ignoreClip;
         public float _lastRealHeight = 1.7f;
@@ -63,8 +64,11 @@ namespace Hackebein.ObjectTracking
             costs++; // config/index
             costs++; // config/value
             costs++; // isRemotePreview
-            costs++; // goStabilized
-            costs++; // isStabilized
+            if (stabilizationSupport)
+            {
+                costs++; // goStabilized
+                costs++; // isStabilized
+            }
             foreach (SetupTracker tracker in trackers)
             {
                 costs++; // config/<tracker.name>
@@ -153,15 +157,21 @@ namespace Hackebein.ObjectTracking
             controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "VelocityY");
             controller = Utility.CreateFloatParameterAndAddToAnimator(controller, "VelocityZ");
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/isRemotePreview");
-            controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/goStabilized");
-            controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/isStabilized");
+            if (stabilizationSupport)
+            {
+                controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/goStabilized");
+                controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/isStabilized");
+            }
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "ObjectTracking/config/global");
             controller = Utility.CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/config/index");
             controller = Utility.CreateIntParameterAndAddToAnimator(controller, "ObjectTracking/config/value");
 
             expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/isRemotePreview", false, false, false);
-            expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/goStabilized", false, false, false);
-            expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/isStabilized", false, false, false);
+            if (stabilizationSupport)
+            {
+                expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/goStabilized", false, false, false);
+                expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/isStabilized", false, false, false);
+            }
             expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/global", false, false, false);
             expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/index", 0, false, false);
             expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/value", 0, false, false);
@@ -193,7 +203,10 @@ namespace Hackebein.ObjectTracking
 
             // Animation Controller
             CreateProcessingLayer();
-            CreateStabilizationLayer();
+            if (stabilizationSupport)
+            {
+                CreateStabilizationLayer();
+            }
             foreach (SetupTracker tracker in trackers)
             {
                 tracker.AppendTransitionLayers(controller, generatedAssetFolder + "/" + uuid);
