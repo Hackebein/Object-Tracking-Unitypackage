@@ -339,6 +339,10 @@ namespace Hackebein.ObjectTracking
             }
             foreach (KeyValuePair<string[], int[]> pair in Axes())
             {
+                if (pair.Value[0] == 0)
+                {
+                    continue;
+                }
                 Tuple<string, bool>[] conditionsToHideBool = new Tuple<string, bool>[]
                 {
                     Tuple.Create("IsLocal", true),
@@ -357,6 +361,10 @@ namespace Hackebein.ObjectTracking
             }
             foreach (KeyValuePair<string[], int[]> pair in Axes())
             {
+                if (pair.Value[0] == 0)
+                {
+                    continue;
+                }
                 Tuple<string, bool>[] conditionsToHideBool = new Tuple<string, bool>[]
                 {
                     Tuple.Create("IsLocal", false),
