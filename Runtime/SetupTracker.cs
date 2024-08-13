@@ -54,6 +54,7 @@ namespace Hackebein.ObjectTracking
         public float defaultRY = 0;
         public float defaultRZ = 0;
         public bool applyLastPosition = true;
+        public bool hideBeyondLimits = true;
         public bool debug = false;
         
         public SetupTracker(string name, Utility.TrackerType trackerType = Utility.TrackerType.None, float defaultPX = 0, float defaultPY = 0, float defaultPZ = 0, float defaultRX = 0, float defaultRY = 0, float defaultRZ = 0)
@@ -224,6 +225,161 @@ namespace Hackebein.ObjectTracking
             }
 
             return new[] { name, path, property };
+        }
+        
+        public void AppendHideBeyondLimitsLayer(AnimatorController controller, String assetFolder)
+        {
+            if (!hideBeyondLimits)
+            {
+                return;
+            }
+            // Animation State Local
+            AnimatorState stateShow = new AnimatorState
+            {
+                name = "Show",
+                writeDefaultValues = false
+            };
+
+            ChildAnimatorState stateShowChild = new ChildAnimatorState
+            {
+                state = stateShow,
+                position = new Vector3(30, 190, 0)
+            };
+
+            // Animation State Remote
+            AnimatorState stateHide = new AnimatorState
+            {
+                name = "Hide",
+                writeDefaultValues = false
+            };
+
+            ChildAnimatorState stateHideChild = new ChildAnimatorState
+            {
+                state = stateHide,
+                position = new Vector3(270, 190, 0)
+            };
+
+            // Layer
+            AnimatorControllerLayer layer = Utility.CreateLayer("ObjectTracking/HideBeyondLimits");
+            layer.stateMachine.states = new[] { stateShowChild, stateHideChild };
+            controller.layers = controller.layers.Append(layer).ToArray();
+
+            // Transition Conditions
+            /// Show
+            Tuple<string, bool>[] conditionsToShowLocalBool = new Tuple<string, bool>[]
+            {
+                Tuple.Create("IsLocal", true),
+                Tuple.Create("ObjectTracking/isRemotePreview", false),
+            };
+            List<Tuple<string, AnimatorConditionMode, float>> conditionsToShowLocalFloat = new List<Tuple<string, AnimatorConditionMode, float>> {};
+            foreach (KeyValuePair<string[], int[]> pair in Axes())
+            {
+                conditionsToShowLocalFloat.Add(Tuple.Create("ObjectTracking/" + name + "/L" + pair.Key[0], AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, 32))));
+                conditionsToShowLocalFloat.Add(Tuple.Create("ObjectTracking/" + name + "/L" + pair.Key[0], AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, 32))));
+            }
+            
+            Tuple<string, bool>[] conditionsToShowRemotePreviewBool = new Tuple<string, bool>[]
+            {
+                Tuple.Create("IsLocal", true),
+                Tuple.Create("ObjectTracking/isRemotePreview", true),
+            };
+            List<Tuple<string, AnimatorConditionMode, float>> conditionsToShowRemotePreviewFloat = new List<Tuple<string, AnimatorConditionMode, float>> {};
+            foreach (KeyValuePair<string[], int[]> pair in Axes())
+            {
+                conditionsToShowRemotePreviewFloat.Add(Tuple.Create("ObjectTracking/" + name + "/R" + pair.Key[0], AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, pair.Value[0]))));
+                conditionsToShowRemotePreviewFloat.Add(Tuple.Create("ObjectTracking/" + name + "/R" + pair.Key[0], AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, pair.Value[0]))));
+            }
+            
+            Tuple<string, bool>[] conditionsToShowRemoteBool = new Tuple<string, bool>[]
+            {
+                Tuple.Create("IsLocal", false),
+            };
+            List<Tuple<string, AnimatorConditionMode, float>> conditionsToShowRemoteFloat = new List<Tuple<string, AnimatorConditionMode, float>> {};
+            foreach (KeyValuePair<string[], int[]> pair in Axes())
+            {
+                conditionsToShowRemoteFloat.Add(Tuple.Create("ObjectTracking/" + name + "/R" + pair.Key[0], AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, pair.Value[0]))));
+                conditionsToShowRemoteFloat.Add(Tuple.Create("ObjectTracking/" + name + "/R" + pair.Key[0], AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, pair.Value[0]))));
+            }
+            
+            /*
+            // TODO: add entry transitions 
+            layer.stateMachine.entryTransitions = new[]
+            {
+                Utility.CreateEntryTransition("isLocal", conditionsToShowLocalBool, conditionsToShowLocalFloat.ToArray(), stateShow),
+                Utility.CreateEntryTransition("isRemotePreview", conditionsToShowRemotePreviewBool, conditionsToShowRemotePreviewFloat.ToArray(), stateShow),
+                Utility.CreateEntryTransition("isRemote", conditionsToShowRemoteBool, conditionsToShowRemoteFloat.ToArray(), stateShow),
+            };
+            */
+            stateHide.transitions = new[]
+            {
+                Utility.CreateTransition("isLocal", conditionsToShowLocalBool, conditionsToShowLocalFloat.ToArray(), stateShow),
+                Utility.CreateTransition("isRemotePreview", conditionsToShowRemotePreviewBool, conditionsToShowRemotePreviewFloat.ToArray(), stateShow),
+                Utility.CreateTransition("isRemote", conditionsToShowRemoteBool, conditionsToShowRemoteFloat.ToArray(), stateShow),
+            };
+
+            /// Hide
+            //stateShow.transitions = new[] {};
+            foreach (KeyValuePair<string[], int[]> pair in Axes())
+            {
+                Tuple<string, bool>[] conditionsToHideBool = new Tuple<string, bool>[]
+                {
+                    Tuple.Create("IsLocal", true),
+                    Tuple.Create("ObjectTracking/isRemotePreview", false),
+                };
+                Tuple<string, AnimatorConditionMode, float>[] conditionsToHideFloat1 = new Tuple<string, AnimatorConditionMode, float>[]
+                {
+                    Tuple.Create("ObjectTracking/" + name + "/L" + pair.Key[0], AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, 32))),
+                };
+                stateShow.transitions = stateShow.transitions.Append(Utility.CreateTransition("isLocal (<" + pair.Key[0] + ")", conditionsToHideBool, conditionsToHideFloat1, stateHide)).ToArray();
+                Tuple<string, AnimatorConditionMode, float>[] conditionsToHideFloat2 = new Tuple<string, AnimatorConditionMode, float>[]
+                {
+                    Tuple.Create("ObjectTracking/" + name + "/L" + pair.Key[0], AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, 32))),
+                };
+                stateShow.transitions = stateShow.transitions.Append(Utility.CreateTransition("isLocal (>" + pair.Key[0] + ")", conditionsToHideBool, conditionsToHideFloat2, stateHide)).ToArray();
+            }
+            foreach (KeyValuePair<string[], int[]> pair in Axes())
+            {
+                Tuple<string, bool>[] conditionsToHideBool = new Tuple<string, bool>[]
+                {
+                    Tuple.Create("IsLocal", true),
+                    Tuple.Create("ObjectTracking/isRemotePreview", true),
+                };
+                Tuple<string, AnimatorConditionMode, float>[] conditionsToHideFloat1 = new Tuple<string, AnimatorConditionMode, float>[]
+                {
+                    Tuple.Create("ObjectTracking/" + name + "/R" + pair.Key[0], AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, pair.Value[0]))),
+                };
+                stateShow.transitions = stateShow.transitions.Append(Utility.CreateTransition("isRemotePreview (<" + pair.Key[0] + ")", conditionsToHideBool, conditionsToHideFloat1, stateHide)).ToArray();
+                Tuple<string, AnimatorConditionMode, float>[] conditionsToHideFloat2 = new Tuple<string, AnimatorConditionMode, float>[]
+                {
+                    Tuple.Create("ObjectTracking/" + name + "/R" + pair.Key[0], AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, pair.Value[0]))),
+                };
+                stateShow.transitions = stateShow.transitions.Append(Utility.CreateTransition("isRemotePreview (>" + pair.Key[0] + ")", conditionsToHideBool, conditionsToHideFloat2, stateHide)).ToArray();
+            }
+            foreach (KeyValuePair<string[], int[]> pair in Axes())
+            {
+                Tuple<string, bool>[] conditionsToHideBool = new Tuple<string, bool>[]
+                {
+                    Tuple.Create("IsLocal", false),
+                };
+                Tuple<string, AnimatorConditionMode, float>[] conditionsToHideFloat1 = new Tuple<string, AnimatorConditionMode, float>[]
+                {
+                    Tuple.Create("ObjectTracking/" + name + "/R" + pair.Key[0], AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, pair.Value[0]))),
+                };
+                stateShow.transitions = stateShow.transitions.Append(Utility.CreateTransition("isRemote (<" + pair.Key[0] + ")", conditionsToHideBool, conditionsToHideFloat1, stateHide)).ToArray();
+                Tuple<string, AnimatorConditionMode, float>[] conditionsToHideFloat2 = new Tuple<string, AnimatorConditionMode, float>[]
+                {
+                    Tuple.Create("ObjectTracking/" + name + "/R" + pair.Key[0], AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, pair.Value[0]))),
+                };
+                stateShow.transitions = stateShow.transitions.Append(Utility.CreateTransition("isRemote (>" + pair.Key[0] + ")", conditionsToHideBool, conditionsToHideFloat2, stateHide)).ToArray();
+            }
+
+            // Clip
+            stateShow.motion =
+                Utility.CreateClip(name + "/ShowInsideLimits", "ObjectTracking/" + name, "m_IsActive", 1, 1, assetFolder);
+            stateHide.motion =
+                Utility.CreateClip(name + "/HideBeyondLimits", "ObjectTracking/" + name, "m_IsActive", 0, 0, assetFolder);
+
+            Utility.AddSubAssetsToDatabase(layer, controller);
         }
 
         public void AppendTransitionLayers(AnimatorController controller, String assetFolder)

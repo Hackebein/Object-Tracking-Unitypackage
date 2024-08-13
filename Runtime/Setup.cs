@@ -1,4 +1,4 @@
-#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
+﻿#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -209,6 +209,7 @@ namespace Hackebein.ObjectTracking
             }
             foreach (SetupTracker tracker in trackers)
             {
+                tracker.AppendHideBeyondLimitsLayer(controller, generatedAssetFolder + "/" + uuid);
                 tracker.AppendTransitionLayers(controller, generatedAssetFolder + "/" + uuid);
             }
 

@@ -435,6 +435,12 @@ namespace Hackebein.ObjectTracking
                             tracker.applyLastPosition = GUILayout.Toggle(tracker.applyLastPosition, "", RelativeWidth(3 / 5f));
                         }
                     }
+                    
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.Label("Hide beyond limits:");
+                        tracker.hideBeyondLimits = GUILayout.Toggle(tracker.hideBeyondLimits, "", RelativeWidth(3 / 5f));
+                    }
 
                     if (setup.mode >= Utility.Modes.Advanced)
                     {
