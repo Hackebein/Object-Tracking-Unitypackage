@@ -39,7 +39,7 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 * Press Create: Tracker gets generated at 0, 0 if "Apply last position" is unchecked
 * Align your object inside the object with the same serial number at 1:1 IRL scale
 
-Video: https://youtu.be/oxvaUqVMznQ
+Video: https://youtu.be/oxvaUqVMznQ (made with earlier version)
 
 ### Menu Item
 #### ObjectTracking/goStabilized
@@ -50,7 +50,7 @@ Button - shows if stabalization is active
 
 ### Debug Menu Item
 #### ObjectTracking/isRemotePreview
-Toggle - Switches to remote view. (update rate change not supported yet)
+Toggle - Switches to remote view.
 
 #### ObjectTracking/config/global
 Toggle - Resends config to App.
