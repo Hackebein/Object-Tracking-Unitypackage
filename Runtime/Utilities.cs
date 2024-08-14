@@ -32,6 +32,7 @@ namespace Hackebein.ObjectTracking
             "Expert"
         };
 
+        // TODO: refactor TrackerTypes
         [Flags]
         public enum TrackerType
         {
@@ -54,7 +55,7 @@ namespace Hackebein.ObjectTracking
             "HTC - VIVE 1.0",
             "HTC - VIVE 2.0",
             "HTC - VIVE 3.0",
-            "Logitech - VR Ink Stylus (coming soon)",
+            "Logitech - VR Ink Stylus",
             "Manus - SteamVR Pro Tracker (coming soon)",
             "Tundra Labs - Tundra Tracker (1\u22154\" Screw Mount)",
             "Tundra Labs - Tundra Tracker (1\u22154\" Screw Mount, rotated)",
@@ -68,7 +69,7 @@ namespace Hackebein.ObjectTracking
             "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 2.0.fbx",
             "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 2.0.fbx",
             "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 3.0.fbx",
-            null, // Logitech VR Ink Stylus
+            "Packages/dev.hackebein.object-tracking/Prefab/Logitech VR Ink Stylus.fbx",
             null, // Manus SteamVR Pro Tracker
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw.fbx",
             "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw rotated.fbx",
