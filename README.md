@@ -10,8 +10,8 @@ Hackebein's VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev)
 ## Support:
 * [Hackebein's Research Lab](https://discord.gg/AqCwGqqQmW) at discord.gg
 
-### Known Issues
-* WD ON not supported
+### Project Overview
+[Task Overview](https://github.com/users/Hackebein/projects/4/views/1)
 
 ## Unity Setup Script
 ![Unity Setup Script](Docs/setup_script.png)
