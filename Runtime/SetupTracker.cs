@@ -76,6 +76,10 @@ namespace Hackebein.ObjectTracking
         public GameObject AppendObjects(GameObject parent)
         {
             GameObject t = Utility.FindOrCreateEmptyGameObject(name, parent);
+            if (applyLastPosition) {
+                t.transform.localPosition = new Vector3(defaultPX, defaultPY, defaultPZ);
+                t.transform.localRotation = Quaternion.Euler(defaultRX, defaultRY, defaultRZ);
+            }
             VRCParentConstraint t_constraint = t.AddComponent<VRCParentConstraint>();
             t_constraint.IsActive = true;
             t_constraint.SolveInLocalSpace = true;
