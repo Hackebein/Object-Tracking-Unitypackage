@@ -418,8 +418,7 @@ namespace Hackebein.ObjectTracking
                             // TODO: Implement Smoothing Types
                             EditorGUILayout.Popup(0, new string[]
                             {
-                                "Exponential (Unity Constraint, PC only)",
-                                "Exponential (VRC Constraint) (coming soon)",
+                                "Exponential (VRC Constraint)",
                                 "Exponential (Animator) (coming soon?)", // https://notes.sleightly.dev/Smoothing-Exponential-019e9e69f617451dabd8d64554e09671
                                 "Damped (Animator) (coming soon?)", // https://notes.sleightly.dev/Smoothed-Float-Half-21fe757e52da4e589e2b30997f459f44
                                 "Linear (Animator) (coming soon?)", // Assets/JelleScripts/Linear/Timing
