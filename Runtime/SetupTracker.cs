@@ -6,8 +6,10 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Animations;
+using VRC.Dynamics;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
+using VRC.SDK3.Dynamics.Constraint.Components;
 using Object = UnityEngine.Object;
 
 namespace Hackebein.ObjectTracking
@@ -53,6 +55,8 @@ namespace Hackebein.ObjectTracking
         public float defaultRX = 0;
         public float defaultRY = 0;
         public float defaultRZ = 0;
+        public float smoothnessL = 0;
+        public float smoothnessR = 3f;
         public bool applyLastPosition = true;
         public bool hideBeyondLimits = true;
         public bool debug = false;
@@ -71,46 +75,30 @@ namespace Hackebein.ObjectTracking
 
         public GameObject AppendObjects(GameObject parent)
         {
-            GameObject ignore = Utility.FindOrCreateGameObject("_ignore", parent);
-            
-            // Objects for position (x, y, z)
-            GameObject x = Utility.FindOrCreateEmptyGameObject(name, ignore);
-            GameObject y = Utility.FindOrCreateEmptyGameObject(name, x);
-            GameObject z = Utility.FindOrCreateEmptyGameObject(name, y);
-
-            // Object with constraint for rotation (x, y, z)
-            GameObject r = Utility.FindOrCreateEmptyGameObject(name, parent);
-
-            // Constraint
-            // TODO: add linear interpolation
-            ParentConstraint constraint = r.AddComponent<ParentConstraint>();
-            constraint.constraintActive = true;
-            constraint.enabled = true;
-            constraint.locked = true;
-
-            ConstraintSource source1 = new ConstraintSource
+            GameObject t = Utility.FindOrCreateEmptyGameObject(name, parent);
+            VRCParentConstraint t_constraint = t.AddComponent<VRCParentConstraint>();
+            t_constraint.IsActive = true;
+            t_constraint.SolveInLocalSpace = true;
+            t_constraint.Locked = true;
+            if (applyLastPosition)
             {
-                weight = 0.05f,
-                sourceTransform = z.transform
-            };
-            constraint.AddSource(source1);
-
-            ConstraintSource source2 = new ConstraintSource
+                t_constraint.Sources.Add(new VRCConstraintSource(parent.transform, 1f, new Vector3(defaultPX, defaultPY, defaultPZ), Quaternion.Euler(defaultRX, defaultRY, defaultRZ).eulerAngles));
+            }
+            else
             {
-                weight = 1,
-                sourceTransform = r.transform
-            };
-            constraint.AddSource(source2);
+                t_constraint.Sources.Add(new VRCConstraintSource(parent.transform, 1f, new Vector3(0, 0, 0), Quaternion.Euler(0, 0, 0).eulerAngles));
+            }
+            t_constraint.Sources.Add(new VRCConstraintSource(t.transform, 0f, new Vector3(0, 0, 0), Quaternion.Euler(0, 0, 0).eulerAngles));
             
             // Tracker
             String path = Utility.TrackerTypeGameObjects[trackerType.GetHashCode()];
             if (path != null)
             {
-                Utility.RemoveGameObjects(Utility.TrackerTypeText[trackerType.GetHashCode()], r);
-                GameObject gameObject = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path), new Vector3(0, 0, 0), Quaternion.identity, r.transform);
+                Utility.RemoveGameObjects(Utility.TrackerTypeText[trackerType.GetHashCode()], t);
+                GameObject gameObject = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path), new Vector3(0, 0, 0), Quaternion.identity, t.transform);
                 gameObject.name = Utility.TrackerTypeText[trackerType.GetHashCode()];
                 gameObject.tag = "EditorOnly";
-                gameObject.transform.localScale = new Vector3(1f, 1f, -1f); 
+                gameObject.transform.localScale = new Vector3(1f, 1f, -1f);
             }
             else if (trackerType != Utility.TrackerType.None)
             {
@@ -122,58 +110,13 @@ namespace Hackebein.ObjectTracking
             {
                 // https://sketchfab.com/3d-models/transform-gizmo-8d1edffdedda4898b3fb1c3c4c08113c
                 string gizmo = "Packages/dev.hackebein.object-tracking/Prefab/GizmoUnity.fbx";
-                Material transparentMaterial = AssetDatabase.LoadAssetAtPath<Material>("Assets/Transparent.mat");
-                Utility.RemoveGameObjects("Gizmo", x);
-                GameObject x_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, x.transform);
-                x_debug.name = "Gizmo";
-                x_debug.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-                foreach (MeshRenderer meshRenderer in x_debug.GetComponents<MeshRenderer>())
-                {
-                    Material[] materials = meshRenderer.sharedMaterials;
-                    materials[1] = transparentMaterial;
-                    materials[2] = transparentMaterial;
-                    meshRenderer.sharedMaterials = materials;
-                }
-                Utility.RemoveGameObjects("Gizmo", y);
-                GameObject y_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, y.transform);
-                y_debug.name = "Gizmo";
-                y_debug.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-                foreach (MeshRenderer meshRenderer in y_debug.GetComponents<MeshRenderer>())
-                {
-                    Material[] materials = meshRenderer.sharedMaterials;
-                    materials[0] = transparentMaterial;
-                    materials[1] = transparentMaterial;
-                    meshRenderer.sharedMaterials = materials;
-                }
-                Utility.RemoveGameObjects("Gizmo", z);
-                GameObject z_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, z.transform);
-                z_debug.name = "Gizmo";
-                z_debug.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-                foreach (MeshRenderer meshRenderer in z_debug.GetComponents<MeshRenderer>())
-                {
-                    Material[] materials = meshRenderer.sharedMaterials;
-                    materials[0] = transparentMaterial;
-                    materials[2] = transparentMaterial;
-                    meshRenderer.sharedMaterials = materials;
-                }
-                Utility.RemoveGameObjects("Gizmo", r);
-                GameObject r_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, r.transform);
-                r_debug.name = "Gizmo";
-                r_debug.transform.localScale = new Vector3(0.04f, 0.04f, -0.04f);
-            }
-
-            // apply default transform
-            if (applyLastPosition)
-            {
-                x.transform.localPosition = new Vector3(defaultPX, 0, 0);
-                y.transform.localPosition = new Vector3(0, defaultPY, 0);
-                z.transform.localPosition = new Vector3(0, 0, defaultPZ);
-                r.transform.localPosition = new Vector3(defaultPX, defaultPY, defaultPZ);
-                r.transform.localRotation = Quaternion.Euler(defaultRX, defaultRY, defaultRZ);
-                constraint.SetRotationOffset(0, Quaternion.Euler(defaultRX, defaultRY, defaultRZ).eulerAngles);
+                Utility.RemoveGameObjects("Gizmo", t);
+                GameObject t_debug = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmo), new Vector3(0, 0, 0), Quaternion.identity, t.transform);
+                t_debug.name = "Gizmo";
+                t_debug.transform.localScale = new Vector3(0.04f, 0.04f, -0.04f);
             }
             
-            return r;
+            return t;
         }
 
         private Dictionary<string[], int[]> Axes()
@@ -195,35 +138,31 @@ namespace Hackebein.ObjectTracking
         {
             string path = "";
             string property = "";
-            // TODO: add support for multiple properties
             switch (name)
             {
                 case "PX":
-                    path = "ObjectTracking/_ignore/" + this.name;
-                    property = "m_LocalPosition.x";
+                    path = "ObjectTracking/" + this.name;
+                    property = "VRCParentConstraint.Sources.source0.ParentPositionOffset.x";
                     break;
                 case "PY":
-                    path = "ObjectTracking/_ignore/" + this.name + "/" + this.name;
-                    property = "m_LocalPosition.y";
+                    path = "ObjectTracking/" + this.name;
+                    property = "VRCParentConstraint.Sources.source0.ParentPositionOffset.y";
                     break;
                 case "PZ":
-                    path = "ObjectTracking/_ignore/" + this.name + "/" + this.name + "/" + this.name;
-                    property = "m_LocalPosition.z";
+                    path = "ObjectTracking/" + this.name;
+                    property = "VRCParentConstraint.Sources.source0.ParentPositionOffset.z";
                     break;
                 case "RX":
                     path = "ObjectTracking/" + this.name;
-                    property = "m_RotationOffsets.Array.data[0].x";
-                    // VRC Constraints: Sources.source0.ParentRotationOffset.x
+                    property = "VRCParentConstraint.Sources.source0.ParentRotationOffset.x";
                     break;
                 case "RY":
                     path = "ObjectTracking/" + this.name;
-                    property = "m_RotationOffsets.Array.data[0].y";
-                    // VRC Constraints: Sources.source0.ParentRotationOffset.y
+                    property = "VRCParentConstraint.Sources.source0.ParentRotationOffset.y";
                     break;
                 case "RZ":
                     path = "ObjectTracking/" + this.name;
-                    property = "m_RotationOffsets.Array.data[0].z";
-                    // VRC Constraints: Sources.source0.ParentRotationOffset.z
+                    property = "VRCParentConstraint.Sources.source0.ParentRotationOffset.z";
                     break;
             }
 
@@ -386,9 +325,9 @@ namespace Hackebein.ObjectTracking
 
             // Clip
             stateShow.motion =
-                Utility.CreateClip(name + "/ShowInsideLimits", "ObjectTracking/" + name, "m_IsActive", 1, 1, assetFolder);
+                Utility.CreateClip(name + "/ShowInsideLimits", "ObjectTracking/" + name, "GameObject.m_IsActive", 1, 1, assetFolder);
             stateHide.motion =
-                Utility.CreateClip(name + "/HideBeyondLimits", "ObjectTracking/" + name, "m_IsActive", 0, 0, assetFolder);
+                Utility.CreateClip(name + "/HideBeyondLimits", "ObjectTracking/" + name, "GameObject.m_IsActive", 0, 0, assetFolder);
 
             Utility.AddSubAssetsToDatabase(layer, controller);
         }
@@ -534,37 +473,51 @@ namespace Hackebein.ObjectTracking
                 {
                     float multiplicator = Utility.GetAAPMultiplicator(accuracy, 8 * i, 8);
                     motions.Add("ObjectTracking/" + name + "/R" + axe.Key[0] + "-Byte" + i + "-Float",
-                        Utility.CreateClip(name + "/R" + axe.Key[0] + "-Byte" + i, "", "ObjectTracking/" + name + "/R" + axe.Key[0], multiplicator, multiplicator, assetFolder));
+                        Utility.CreateClip(name + "/R" + axe.Key[0] + "-Byte" + i, "", "Animator.ObjectTracking/" + name + "/R" + axe.Key[0], multiplicator, multiplicator, assetFolder));
                 }
 
                 for (int i = 0; i < accuracyBits; i++)
                 {
                     float multiplicator = Utility.GetAAPMultiplicator(accuracy, 8 * accuracyBytes + i, 1);
                     motions.Add("ObjectTracking/" + name + "/R" + axe.Key[0] + "-Bit" + i + "-Float",
-                        Utility.CreateClip(name + "/R" + axe.Key[0] + "-Bit" + i, "", "ObjectTracking/" + name + "/R" + axe.Key[0], multiplicator, multiplicator, assetFolder));
+                        Utility.CreateClip(name + "/R" + axe.Key[0] + "-Bit" + i, "", "Animator.ObjectTracking/" + name + "/R" + axe.Key[0], multiplicator, multiplicator, assetFolder));
                 }
             }
         }
 
         public void AppendResetList(Dictionary<string[], float[]> reset)
         {
-            foreach (KeyValuePair<string[], int[]> axe in Axes())
-            {
-                if (axe.Key[0].StartsWith("P") || axe.Key[0] == "RX")
-                {
-                    reset.Add(new[] { axe.Key[1], "m_IsActive" }, new[] { 1f, 1f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalPosition.x" }, new[] { 0f, 0f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalPosition.y" }, new[] { 0f, 0f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalPosition.z" }, new[] { 0f, 0f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalRotation.x" }, new[] { 0f, 0f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalRotation.y" }, new[] { 0f, 0f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalRotation.z" }, new[] { 0f, 0f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalRotation.w" }, new[] { 1f, 1f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalScale.x" }, new[] { 1f, 1f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalScale.y" }, new[] { 1f, 1f });
-                    reset.Add(new[] { axe.Key[1], "m_LocalScale.z" }, new[] { 1f, 1f });
-                }
-            }
+            // Trying to prevent the user to break Object Tracking
+            reset.Add(new[] { "ObjectTracking/" + this.name, "GameObject.m_IsActive" }, new[] { 1f, 1f });
+            // Not needed, because imidiatly set by the VRCParentConstraint
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalPosition.x" }, new[] { 0f, 0f });
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalPosition.y" }, new[] { 0f, 0f });
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalPosition.z" }, new[] { 0f, 0f });
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalRotation.x" }, new[] { 0f, 0f });
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalRotation.y" }, new[] { 0f, 0f });
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalRotation.z" }, new[] { 0f, 0f });
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalRotation.w" }, new[] { 1f, 1f });
+            // Not needed, because scale applies after the VRCParentConstraint
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalScale.x" }, new[] { 1f, 1f });
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalScale.y" }, new[] { 1f, 1f });
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "Transform.m_LocalScale.z" }, new[] { 1f, 1f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.IsActive" }, new[] { 1f, 1f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.SolveInLocalSpace" }, new[] { 1f, 1f });
+            // Can't be reset, because it can't be animated
+            //reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Locked" }, new[] { 1f, 1f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source0.Weight" }, new[] { 1f, 1f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source1.Weight" }, new[] { smoothnessR, smoothnessR });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source1.ParentPositionOffset.x" }, new[] { 0f, 0f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source1.ParentPositionOffset.y" }, new[] { 0f, 0f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source1.ParentPositionOffset.z" }, new[] { 0f, 0f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source1.ParentRotationOffset.x" }, new[] { 0f, 0f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source1.ParentRotationOffset.y" }, new[] { 0f, 0f });
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source1.ParentRotationOffset.z" }, new[] { 0f, 0f });
+        }
+        
+        public void AppendLocalResetList(Dictionary<string[], float[]> reset)
+        {
+            reset.Add(new[] { "ObjectTracking/" + this.name, "VRCParentConstraint.Sources.source1.Weight" }, new[] { smoothnessL, smoothnessL });
         }
 
         public void AppendAnimatorControllerParameters(AnimatorController controller)

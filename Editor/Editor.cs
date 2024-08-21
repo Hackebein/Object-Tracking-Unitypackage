@@ -425,6 +425,18 @@ namespace Hackebein.ObjectTracking
                                 "Linear (Animator) (coming soon?)", // Assets/JelleScripts/Linear/Timing
                             }, RelativeWidth(3 / 5f, true));
                         }
+                        
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("Smoothing (local):");
+                            tracker.smoothnessL = EditorGUILayout.FloatField(tracker.smoothnessL, RelativeWidth(3 / 5f, true));
+                        }
+                        
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            GUILayout.Label("Smoothing (remote):");
+                            tracker.smoothnessR = EditorGUILayout.FloatField(tracker.smoothnessR, RelativeWidth(3 / 5f, true));
+                        }
                     }
                     
                     if (tracker.defaultPX != 0 || tracker.defaultPY != 0 || tracker.defaultPZ != 0 || tracker.defaultRX != 0 || tracker.defaultRY != 0 || tracker.defaultRZ != 0)

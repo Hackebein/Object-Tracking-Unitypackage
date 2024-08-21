@@ -11,6 +11,7 @@ using UnityEngine.Animations;
 using UnityEngine.SceneManagement;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
+using VRC.SDK3.Dynamics.Constraint.Components;
 using Object = UnityEngine.Object;
 
 namespace Hackebein.ObjectTracking
@@ -454,38 +455,26 @@ namespace Hackebein.ObjectTracking
             };
             foreach (KeyValuePair<string[], float[]> prop in props)
             {
-                Type type = typeof(GameObject);
-                switch (prop.Key[1].Split('.')[0])
+                String path = prop.Key[0];
+                String[] parts = prop.Key[1].Split('.', 2);
+                String typeString = parts[0];
+                String property = parts[1];
+                float start = prop.Value[0];
+                float stop = prop.Value[1];
+                Dictionary<string, Type> typeMapping = new Dictionary<string, Type>
                 {
-                    //case "Sources":
-                    //    type = typeof( /*VRC CONSTRAINT*/);
-                    //    break;
-                    case "m_Sources":
-                    case "m_TranslationOffsets":
-                    case "m_RotationOffsets":
-                        type = typeof(ParentConstraint);
-                        break;
-                    case "m_LocalPosition":
-                    case "m_LocalRotation":
-                    case "m_LocalScale":
-                        type = typeof(Transform);
-                        break;
-                    case "m_IsActive":
-                        type = typeof(GameObject);
-                        break;
-                    default:
-                        if (prop.Key[0] == "")
-                        {
-                            // we expect only AAP on root level
-                            type = typeof(Animator);
-                        } else {
-                            Debug.LogWarning("Can't map property to a type, fall back to GameObject: " + prop.Key[1]);
-                            type = typeof(GameObject);
-                        }
-                        break;
+                    { "Animator", typeof(Animator) },
+                    { "GameObject", typeof(GameObject) },
+                    { "Transform", typeof(Transform) },
+                    { "VRCParentConstraint", typeof(VRCParentConstraint) },
+                };
+                if (!typeMapping.TryGetValue(typeString, out Type type))
+                {
+                    Debug.LogWarning("Can't map property to a type, fall back to GameObject: " + typeString);
+                    type = typeof(GameObject);
                 }
-                EditorCurveBinding binding = EditorCurveBinding.FloatCurve(prop.Key[0], type, prop.Key[1]);
-                AnimationCurve curve = AnimationCurve.Linear(0, prop.Value[0], 1 / 60f, prop.Value[1]);
+                EditorCurveBinding binding = EditorCurveBinding.FloatCurve(path, type, property);
+                AnimationCurve curve = AnimationCurve.Linear(0, start, 1 / 60f, stop);
                 AnimationUtility.SetEditorCurve(clip, binding, curve);
             }
 

@@ -148,7 +148,7 @@ namespace Hackebein.ObjectTracking
             Remove();
             
             // ignore animation
-            ignoreClip = Utility.CreateClip("ignore", "_ignore", "m_IsActive", 0, 0, generatedAssetFolder);
+            ignoreClip = Utility.CreateClip("ignore", "_ignore", "GameObject.m_IsActive", 0, 0, generatedAssetFolder);
 
             // Parameters
             controller = Utility.CreateBoolParameterAndAddToAnimator(controller, "IsLocal");
@@ -256,17 +256,18 @@ namespace Hackebein.ObjectTracking
 
             Dictionary<string[], float[]> propsInit = new Dictionary<string[], float[]>
             {
-                { new[] { "ObjectTracking", "m_IsActive" }, new[] { 1f, 1f } },
-                { new[] { "ObjectTracking", "m_LocalPosition.x" }, new[] { 0f, 0f } },
-                { new[] { "ObjectTracking", "m_LocalPosition.y" }, new[] { 0f, 0f } },
-                { new[] { "ObjectTracking", "m_LocalPosition.z" }, new[] { zOffset, zOffset } },
-                { new[] { "ObjectTracking", "m_LocalRotation.x" }, new[] { 0f, 0f } },
-                { new[] { "ObjectTracking", "m_LocalRotation.y" }, new[] { 0f, 0f } },
-                { new[] { "ObjectTracking", "m_LocalRotation.z" }, new[] { 0f, 0f } },
-                { new[] { "ObjectTracking", "m_LocalRotation.w" }, new[] { 1f, 1f } },
-                { new[] { "ObjectTracking", "m_LocalScale.x" }, new[] { scale, scale } },
-                { new[] { "ObjectTracking", "m_LocalScale.y" }, new[] { scale, scale } },
-                { new[] { "ObjectTracking", "m_LocalScale.z" }, new[] { scale, scale } },
+                // Trying to prevent the user to break Object Tracking
+                { new[] { "ObjectTracking", "GameObject.m_IsActive" }, new[] { 1f, 1f } },
+                { new[] { "ObjectTracking", "Transform.m_LocalPosition.x" }, new[] { 0f, 0f } },
+                { new[] { "ObjectTracking", "Transform.m_LocalPosition.y" }, new[] { 0f, 0f } },
+                { new[] { "ObjectTracking", "Transform.m_LocalPosition.z" }, new[] { zOffset, zOffset } },
+                { new[] { "ObjectTracking", "Transform.m_LocalRotation.x" }, new[] { 0f, 0f } },
+                { new[] { "ObjectTracking", "Transform.m_LocalRotation.y" }, new[] { 0f, 0f } },
+                { new[] { "ObjectTracking", "Transform.m_LocalRotation.z" }, new[] { 0f, 0f } },
+                { new[] { "ObjectTracking", "Transform.m_LocalRotation.w" }, new[] { 1f, 1f } },
+                { new[] { "ObjectTracking", "Transform.m_LocalScale.x" }, new[] { scale, scale } },
+                { new[] { "ObjectTracking", "Transform.m_LocalScale.y" }, new[] { scale, scale } },
+                { new[] { "ObjectTracking", "Transform.m_LocalScale.z" }, new[] { scale, scale } },
             };
             foreach (SetupTracker tracker in trackers)
             {
@@ -283,12 +284,19 @@ namespace Hackebein.ObjectTracking
 
             layer.stateMachine.states = layer.stateMachine.states.Append(stateInitChild).ToArray();
 
+            // Local Init
+            Dictionary<string[], float[]> propsLocalInit = new Dictionary<string[], float[]> {};
+            foreach (SetupTracker tracker in trackers)
+            {
+                tracker.AppendLocalResetList(propsLocalInit);
+            }
+            
             // Animation State Local
             AnimatorState stateLocal = new AnimatorState
             {
                 name = "Local",
                 writeDefaultValues = false,
-                motion = ignoreClip
+                motion = Utility.CreateClip("init (local)", propsLocalInit, generatedAssetFolder)
             };
 
             List<VRCAvatarParameterDriver.Parameter> parameterDriverParametersLocal = new List<VRCAvatarParameterDriver.Parameter>
@@ -445,8 +453,8 @@ namespace Hackebein.ObjectTracking
             };
             stateLocal.transitions = new[]
             {
-                Utility.CreateTransition("isRemote", conditionsToRemote, stateRemote),
-                Utility.CreateTransition("isRemotePreview", conditionsToRemotePreview, stateRemote),
+                Utility.CreateTransition("isRemote", conditionsToRemote, stateInit),
+                Utility.CreateTransition("isRemotePreview", conditionsToRemotePreview, stateInit),
                 Utility.CreateTransition("reload", conditionsReload, stateLocal)
             };
             stateRemote.transitions = new[]
