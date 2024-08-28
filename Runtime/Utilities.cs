@@ -1,4 +1,4 @@
-﻿#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
+#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -79,16 +79,22 @@ namespace Hackebein.ObjectTracking
         
         public static TrackerType TrackerModelNumberToTrackerType(string model)
         {
-            Utility.TrackerType type = Utility.TrackerType.None;
-            //if (model == "") type = Utility.TrackerType.EZtrackSWAN;
-            //if (model == "") type = Utility.TrackerType.HtcVive10;
-            if (model == "VIVE Tracker Pro MV") type = Utility.TrackerType.HtcVive20;
-            if (model == "VIVE Tracker 3.0 MV") type = Utility.TrackerType.HtcVive30;
-            if (model == "logitech_raw_stylus_v4.0") type = Utility.TrackerType.LogitechVRInkStylus;
-            //if (model == "") type = Utility.TrackerType.ManusSteamVRProTracker;
-            if (model == "Tundra Tracker") type = Utility.TrackerType.TundraLabsTundraTrackerStrap;
-            //if (model == "Valve SR Imp") type = Utility.TrackerType.; // 2.0 Basestation
-            return type;
+            switch (model)
+            {
+                // EZtrack SWAN
+                // Vive Tracker 1.0
+                case "VIVE Tracker Pro MV":
+                    return Utility.TrackerType.HtcVive20;
+                case "VIVE Tracker 3.0 MV":
+                    return Utility.TrackerType.HtcVive30;
+                case "logitech_raw_stylus_v4.0":
+                    return Utility.TrackerType.LogitechVRInkStylus;
+                // Manus SteamVR Pro Tracker
+                case "Tundra Tracker":
+                    return Utility.TrackerType.TundraLabsTundraTrackerStrap;
+                default:
+                    return Utility.TrackerType.None;
+            }
         }
         
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
