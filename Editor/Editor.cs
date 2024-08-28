@@ -862,7 +862,7 @@ namespace Hackebein.ObjectTracking
 
                                 using (new GUILayout.VerticalScope())
                                 {
-                                    GUILayout.Label("Default (in m):", RelativeWidth((float)1 / 6, true));
+                                    GUILayout.Label("Default (in °):", RelativeWidth((float)1 / 6, true));
                                 }
 
                                 using (new GUILayout.VerticalScope())
