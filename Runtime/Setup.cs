@@ -1,4 +1,4 @@
-﻿#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
+#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -303,80 +303,45 @@ namespace Hackebein.ObjectTracking
             {
                 Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 0),
                 Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 0),
-                Utility.ParameterDriverParameterSet("ObjectTracking/config/global", true),
-                Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 1), // version number
-                Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 1),
-                Utility.ParameterDriverParameterSet("ObjectTracking/config/global", false),
-                Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 0),
-                Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 0),
             };
+            Utility.AddTrackerStart(parameterDriverParametersLocal, "global");
+            Utility.AddConfigValue(parameterDriverParametersLocal, 1, 1); // version number
+            Utility.AddTrackerEnd(parameterDriverParametersLocal, "global");
             for (int i = 0; i < trackers.Count; i++)
             {
                 SetupTracker tracker = trackers[i];
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/" + tracker.name, true));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRPX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 1));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRPY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 2));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRPZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 3));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRRX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 4));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRRY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 5));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.bitsRRZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 6));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLPX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 7));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLPY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 8));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLPZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 9));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLRX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 10));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLRY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 11));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minLRZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 12));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRPX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 13));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRPY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 14));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRPZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 15));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRRX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 16));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRRY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 17));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.minRRZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 18));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLPX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 19));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLPY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 20));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLPZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 21));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLRX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 22));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLRY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 23));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxLRZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 24));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRPX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 25));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRPY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 26));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRPZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 27));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRRX));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 28));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRRY));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 29));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", tracker.maxRRZ));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 30));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/" + tracker.name, false));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 0));
-                parameterDriverParametersLocal.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 0));
+                Utility.AddTrackerStart(parameterDriverParametersLocal, tracker.name);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 1, tracker.bitsRPX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 2, tracker.bitsRPY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 3, tracker.bitsRPZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 4, tracker.bitsRRX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 5, tracker.bitsRRY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 6, tracker.bitsRRZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 7, tracker.minLPX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 8, tracker.minLPY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 9, tracker.minLPZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 10, tracker.minLRX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 11, tracker.minLRY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 12, tracker.minLRZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 13, tracker.minRPX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 14, tracker.minRPY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 15, tracker.minRPZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 16, tracker.minRRX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 17, tracker.minRRY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 18, tracker.minRRZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 19, tracker.maxLPX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 20, tracker.maxLPY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 21, tracker.maxLPZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 22, tracker.maxLRX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 23, tracker.maxLRY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 24, tracker.maxLRZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 25, tracker.maxRPX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 26, tracker.maxRPY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 27, tracker.maxRPZ);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 28, tracker.maxRRX);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 29, tracker.maxRRY);
+                Utility.AddConfigValue(parameterDriverParametersLocal, 30, tracker.maxRRZ);
+                Utility.AddTrackerEnd(parameterDriverParametersLocal, tracker.name);
             }
             VRCAvatarParameterDriver parameterDriverLocal = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
             parameterDriverLocal.parameters = parameterDriverParametersLocal;

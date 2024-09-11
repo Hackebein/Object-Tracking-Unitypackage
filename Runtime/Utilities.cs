@@ -725,6 +725,25 @@ namespace Hackebein.ObjectTracking
                 }
             }
         }
+
+        public static void AddTrackerStart(List<VRCAvatarParameterDriver.Parameter> parameterDriverParameters, string name)
+        {
+            parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/" + name, true));
+        }
+
+        public static void AddTrackerEnd(List<VRCAvatarParameterDriver.Parameter> parameterDriverParameters, string name)
+        {
+            parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/" + name, false));
+            parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", 0));
+            parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", 0));
+        }
+        
+        public static void AddConfigValue(List<VRCAvatarParameterDriver.Parameter> parameterDriverParameters, int index, int value)
+        {
+            parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", value));
+            parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", index));
+        }
+
     }
 }
 #endif
