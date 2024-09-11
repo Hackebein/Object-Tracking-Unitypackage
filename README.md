@@ -52,7 +52,7 @@ Pre-releases are essentially test versions that have undergone less rigorous tes
 Video: https://youtu.be/oxvaUqVMznQ (made with earlier version)
 
 ### Menu Item
-#### ObjectTracking/tracker/<name>/enabled
+#### ObjectTracking/tracker/\<SERIAL NUMBER\>/enabled
 Toggle - Enables Object
 
 #### ObjectTracking/goStabilized
