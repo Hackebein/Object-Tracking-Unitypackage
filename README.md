@@ -52,6 +52,9 @@ Pre-releases are essentially test versions that have undergone less rigorous tes
 Video: https://youtu.be/oxvaUqVMznQ (made with earlier version)
 
 ### Menu Item
+#### ObjectTracking/tracker/<name>/enabled
+Toggle - Enables Object
+
 #### ObjectTracking/goStabilized
 Toggle - stabalize movement if a lot of movement is going on
 
