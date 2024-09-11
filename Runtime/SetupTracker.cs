@@ -97,7 +97,6 @@ namespace Hackebein.ObjectTracking
                 Utility.RemoveGameObjects(Utility.TrackerTypeText[trackerType.GetHashCode()], t);
                 GameObject gameObject = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path), new Vector3(0, 0, 0), Quaternion.identity, t.transform);
                 gameObject.name = Utility.TrackerTypeText[trackerType.GetHashCode()];
-                gameObject.tag = "EditorOnly";
                 gameObject.transform.localScale = new Vector3(1f, 1f, -1f);
             }
             else if (trackerType != Utility.TrackerType.None)
