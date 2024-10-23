@@ -545,6 +545,7 @@ namespace Hackebein.ObjectTracking
 
         public void AppendExpressionParameters(VRCExpressionParameters expressionParameters)
         {
+            expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/tracker/" + name + "/enabled", false, false, false);
             foreach (KeyValuePair<string[], int[]> pair in Axes())
             {
                 int accuracy = pair.Value[0];
@@ -566,15 +567,16 @@ namespace Hackebein.ObjectTracking
 
         public int GetExpressionParameters()
         {
-            int costs = 0;
+            int count = 0;
+            count++; // ObjectTracking/tracker/<NAME>/enabled
             foreach (KeyValuePair<string[], int[]> pair in Axes())
             {
-                costs += 1; // L<PX|PY|PZ|RX|RY|RZ>
-                costs += pair.Value[0] / 8; // R<PX|PY|PZ|RX|RY|RZ>-Byte<0-4>
-                costs += pair.Value[0] % 8; // R<PX|PY|PZ|RX|RY|RZ>-Bit<0-7>
+                count += 1; // L<PX|PY|PZ|RX|RY|RZ>
+                count += pair.Value[0] / 8; // R<PX|PY|PZ|RX|RY|RZ>-Byte<0-4>
+                count += pair.Value[0] % 8; // R<PX|PY|PZ|RX|RY|RZ>-Bit<0-7>
             }
 
-            return costs;
+            return count;
         }
 
         public int GetExpressionParameterCosts()
