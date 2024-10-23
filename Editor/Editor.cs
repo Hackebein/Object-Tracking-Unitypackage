@@ -1375,7 +1375,7 @@ namespace Hackebein.ObjectTracking
 
                 if (!isParameterCostsViable)
                 {
-                    isCreateable = false;
+                    //isCreateable = false;
                     GUILayout.Label("Expression Parameter Costs are too high!", RelativeWidth((float)1 / 2));
                 }
 
