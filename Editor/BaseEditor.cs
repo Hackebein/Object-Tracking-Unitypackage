@@ -33,7 +33,7 @@ namespace hackebein.objecttracking
                 return;
             }
             var avatar = baseComponent.transform.parent.GetComponent<VRCAvatarDescriptor>();
-            if (avatar.expressionsMenu.controls.Count >= (baseComponent.settings.addDebugMenu ? 7 : 8))
+            if (avatar.expressionsMenu != null && avatar.expressionsMenu.controls.Count >= (baseComponent.settings.addDebugMenu ? 7 : 8))
             {
                 EditorGUILayout.HelpBox("No Space in your Expression Menu. Upload might fail.", MessageType.Warning);
             }
