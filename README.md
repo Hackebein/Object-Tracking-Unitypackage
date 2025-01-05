@@ -30,16 +30,24 @@ Pre-releases are essentially test versions that have undergone less rigorous tes
 
 ### Base Component
 ![Base Component](Docs/base_component.png)
+
 **Update Once**: Generates new Game Objects for Trackers which are not on your ignore list. Updates Trackers with "Update in Edit Mode" set.
+
 **Update Continuously**: Same as Update Once. Running on every Scene redraw.
+
 **Add Menu**: Basic Menu to toggle objects. Also contains a toggle to stabalize your position. (You can create your own. List for Menu Items can be found below.)
 
 ### Tracker Component
 ![Tracker Component](Docs/tracker_component.png)
+
 **Identifier** (if no device data): Identifier for OSC
+
 **Position Damping**: Smoothes position. Values from 0.00 (0%) to 1.00 (100%)
+
 **Rotation Damping**: Smoothes Rotation. Values from 0.00 (0%) to 1.00 (100%)
+
 **Hide Beyond Limits**: Hides the objects beyond the remote/yellow, as well as beyond the local/red area
+
 **Update in Edit Mode**: Allows to update this tracker from the Base Component
 
 ### Menu Item
