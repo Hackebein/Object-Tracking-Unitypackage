@@ -35,7 +35,7 @@ Pre-releases are essentially test versions that have undergone less rigorous tes
 
 **Update Continuously**: Same as Update Once. Running on every Scene redraw. (ex. hold right click in scene window)
 
-**Add Menu**: Basic Menu to toggle objects. Also contains a toggle to stabalize your position. (You can create your own. List for Menu Items can be found below.)
+**Add Menu**: Basic Menu to toggle objects. Also contains a toggle to stabilize your position. (You can create your own. List for Menu Items can be found below.)
 
 ### Tracker Component
 ![Tracker Component](Docs/tracker_component.png)
@@ -51,15 +51,15 @@ Pre-releases are essentially test versions that have undergone less rigorous tes
 **Update in Edit Mode**: Allows to update this tracker from the Base Component
 
 ### Menu Item
-#### ObjectTracking/tracker/\<SERIAL NUMBER\>/enabled
+#### ObjectTracking/tracker/\<IDENTIFIER\>/enabled
 Toggle - Enables Object
 
 #### ObjectTracking/goStabilized
-Toggle - stabalize movement if a lot of movement is going on
+Toggle - Stabilize movement if a lot of movement is going on
 
 #### ObjectTracking/isStabilized [Read Only]
 #### ObjectTracking/isLazyStabilized [Read Only]
-Button - shows if stabalization is active
+Button - Shows if stabalization is active
 
 ### Debug Menu Item
 #### ObjectTracking/isRemotePreview
