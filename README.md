@@ -33,7 +33,7 @@ Pre-releases are essentially test versions that have undergone less rigorous tes
 
 **Update Once**: Generates new Game Objects for Trackers which are not on your ignore list. Updates Trackers with "Update in Edit Mode" set.
 
-**Update Continuously**: Same as Update Once. Running on every Scene redraw.
+**Update Continuously**: Same as Update Once. Running on every Scene redraw. (ex. hold right click in scene window)
 
 **Add Menu**: Basic Menu to toggle objects. Also contains a toggle to stabalize your position. (You can create your own. List for Menu Items can be found below.)
 
