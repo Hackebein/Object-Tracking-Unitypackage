@@ -21,15 +21,26 @@ Everything before version 1.0 is to be seen as pre-release.
 ### Pre-release
 Pre-releases are essentially test versions that have undergone less rigorous testing and may contain bugs. These versions have limited compatibility and are typically designed to work only with the latest provided App version.
 
-## Unity Setup Script
-![Unity Setup Script](Docs/setup_script.png)
-
-### Setup
+## Setup
 * Add VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev) to VCC
-* Add VPM "Hackebein's Object Tracking Setup" to your Project
-* Add Empty GameObject as child to your Avatar
+* Add VPM "Hackebein's Object Tracking" to your Project (not "Hackebein's Object Tracking Setup")
+* Add Empty Game Object as child to your Avatar
 * Add "Hackebein's Object Tracking Base Component" to the GameObject
-* Update Tracker  
+* Update Tracker (Once/Continuously)
+
+### Base Component
+![Base Component](Docs/base_component.png)
+**Update Once**: Generates new Game Objects for Trackers which are not on your ignore list. Updates Trackers with "Update in Edit Mode" set.
+**Update Continuously**: Same as Update Once. Running on every Scene redraw.
+**Add Menu**: Basic Menu to toggle objects. Also contains a toggle to stabalize your position. (You can create your own. List for Menu Items can be found below.)
+
+### Tracker Component
+![Tracker Component](Docs/tracker_component.png)
+**Identifier** (if no device data): Identifier for OSC
+**Position Damping**: Smoothes position. Values from 0.00 (0%) to 1.00 (100%)
+**Rotation Damping**: Smoothes Rotation. Values from 0.00 (0%) to 1.00 (100%)
+**Hide Beyond Limits**: Hides the objects beyond the remote/yellow, as well as beyond the local/red area
+**Update in Edit Mode**: Allows to update this tracker from the Base Component
 
 ### Menu Item
 #### ObjectTracking/tracker/\<SERIAL NUMBER\>/enabled
