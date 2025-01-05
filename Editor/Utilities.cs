@@ -1,102 +1,23 @@
-#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
+﻿#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using VRC.SDK3.Dynamics.Constraint.Components;
-using Object = UnityEngine.Object;
+using JetBrains.Annotations;
 
-namespace Hackebein.ObjectTracking
+namespace hackebein.objecttracking
 {
     public static class Utility
     {
-        [Flags]
-        public enum Modes
-        {
-            Simple = 0,
-            Advanced = 1,
-            Expert = 2,
-        }
-
-        public static readonly string[] ModesText =
-        {
-            "Simple",
-            "Advanced",
-            "Expert"
-        };
-
-        // TODO: refactor TrackerTypes
-        [Flags]
-        public enum TrackerType
-        {
-            None,
-            EZtrackSWAN,
-            HtcVive10,
-            HtcVive20,
-            HtcVive30,
-            LogitechVRInkStylus,
-            ManusSteamVRProTracker,
-            TundraLabsTundraTrackerScrew,
-            TundraLabsTundraTrackerScrewRotated,
-            TundraLabsTundraTrackerStrap,
-        }
-
-        public static readonly string[] TrackerTypeText =
-        {
-            "None",
-            "EZtrack - SWAN (coming soon)",
-            "HTC - VIVE 1.0",
-            "HTC - VIVE 2.0",
-            "HTC - VIVE 3.0",
-            "Logitech - VR Ink Stylus",
-            "Manus - SteamVR Pro Tracker (coming soon)",
-            "Tundra Labs - Tundra Tracker (1\u22154\" Screw Mount)",
-            "Tundra Labs - Tundra Tracker (1\u22154\" Screw Mount, rotated)",
-            "Tundra Labs - Tundra Tracker (Strap Mount)",
-        };
-
-        public static readonly String[] TrackerTypeGameObjects =
-        {
-            null, // None
-            null, // EZtrack SWAN
-            "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 2.0.fbx",
-            "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 2.0.fbx",
-            "Packages/dev.hackebein.object-tracking/Prefab/HTC Vive 3.0.fbx",
-            "Packages/dev.hackebein.object-tracking/Prefab/Logitech VR Ink Stylus.fbx",
-            null, // Manus SteamVR Pro Tracker
-            "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw.fbx",
-            "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker screw rotated.fbx",
-            "Packages/dev.hackebein.object-tracking/Prefab/Tundra Labs Tundra Tracker strap.fbx",
-        };
-        
-        public static TrackerType TrackerModelNumberToTrackerType(string model)
-        {
-            switch (model)
-            {
-                // EZtrack SWAN
-                // Vive Tracker 1.0
-                case "VIVE Tracker Pro MV":
-                    return Utility.TrackerType.HtcVive20;
-                case "VIVE Tracker 3.0 MV":
-                    return Utility.TrackerType.HtcVive30;
-                case "logitech_raw_stylus_v4.0":
-                    return Utility.TrackerType.LogitechVRInkStylus;
-                // Manus SteamVR Pro Tracker
-                case "Tundra Tracker":
-                    return Utility.TrackerType.TundraLabsTundraTrackerStrap;
-                default:
-                    return Utility.TrackerType.None;
-            }
-        }
-        
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
         {
             AnimatorControllerParameter parameter = new AnimatorControllerParameter
@@ -280,6 +201,18 @@ namespace Hackebein.ObjectTracking
         }
 
         public static VRCAvatarParameterDriver.Parameter ParameterDriverParameterSet(string name, int value)
+        {
+            VRCAvatarParameterDriver.Parameter parameterDriverParameter = new VRCAvatarParameterDriver.Parameter
+            {
+                type = VRCAvatarParameterDriver.ChangeType.Set,
+                name = name,
+                value = value
+            };
+
+            return parameterDriverParameter;
+        }
+
+        public static VRCAvatarParameterDriver.Parameter ParameterDriverParameterSet(string name, float value)
         {
             VRCAvatarParameterDriver.Parameter parameterDriverParameter = new VRCAvatarParameterDriver.Parameter
             {
@@ -476,7 +409,7 @@ namespace Hackebein.ObjectTracking
                 };
                 if (!typeMapping.TryGetValue(typeString, out Type type))
                 {
-                    Debug.LogWarning("Can't map property to a type, fall back to GameObject: " + typeString);
+                    Debug.LogWarning("[Hackebein's Object Tracking] Can't map property to a type, fall back to GameObject: " + typeString);
                     type = typeof(GameObject);
                 }
                 EditorCurveBinding binding = EditorCurveBinding.FloatCurve(path, type, property);
@@ -513,7 +446,7 @@ namespace Hackebein.ObjectTracking
             return blendTree;
         }
 
-        public static void ResetGameObject(GameObject gameObject)
+        public static void ResetGameObject(GameObject gameObject, List<Type> ignoredComponentTypes = null)
         {
             gameObject.transform.localPosition = Vector3.zero;
             gameObject.transform.localRotation = Quaternion.identity;
@@ -525,15 +458,20 @@ namespace Hackebein.ObjectTracking
                 {
                     continue;
                 }
+                
+                if (ignoredComponentTypes != null && ignoredComponentTypes.Contains(component.GetType()))
+                {
+                    continue;
+                }
 
                 GameObject.DestroyImmediate(component);
             }
         }
 
-        public static GameObject FindOrCreateEmptyGameObject(string name, [CanBeNull] GameObject parent = null)
+        public static GameObject FindOrCreateEmptyGameObject(string name, [CanBeNull] GameObject parent = null, List<Type> ignoredComponentTypes = null)
         {
             GameObject gameObject = FindOrCreateGameObject(name, parent);
-            ResetGameObject(gameObject);
+            ResetGameObject(gameObject, ignoredComponentTypes);
             return gameObject;
         }
 
@@ -563,7 +501,8 @@ namespace Hackebein.ObjectTracking
         {
             GameObject gameObject = new GameObject
             {
-                name = name
+                name = name,
+                tag = "EditorOnly"
             };
             if (parent != null)
             {
@@ -725,6 +664,73 @@ namespace Hackebein.ObjectTracking
                 }
             }
         }
+        
+        public static (float centerX, float centerY) FindCenter(List<(float x, float y)> points)
+        {
+            int n = points.Count;
+            float sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0, sumXY = 0, sumR = 0, sumRX = 0, sumRY = 0;
+
+            foreach (var point in points)
+            {
+                float x = point.x;
+                float y = point.y;
+                float r = x * x + y * y;
+                sumX += x;
+                sumY += y;
+                sumX2 += x * x;
+                sumY2 += y * y;
+                sumXY += x * y;
+                sumR += r;
+                sumRX += r * x;
+                sumRY += r * y;
+            }
+
+            float C = n * sumX2 + n * sumY2 - sumX * sumX - sumY * sumY;
+            float Xc = (sumR * sumX - sumRX * n) / C;
+            float Yc = (sumR * sumY - sumRY * n) / C;
+
+            return (Xc, Yc);
+        }
+        
+        public static (float X, float Y) FindCircleCenter((float X, float Y)[] points)
+        {
+            int n = points.Length;
+            float sumX = points.Sum(p => p.X);
+            float sumY = points.Sum(p => p.Y);
+            float sumX2 = points.Sum(p => p.X * p.X);
+            float sumY2 = points.Sum(p => p.Y * p.Y);
+            float sumXY = points.Sum(p => p.X * p.Y);
+            float sumR2 = points.Sum(p => p.X * p.X + p.Y * p.Y);
+
+            float A = 2 * (sumX * sumX - n * sumX2);
+            float B = 2 * (sumY * sumY - n * sumY2);
+            float C = 2 * (sumX * sumY - n * sumXY);
+
+            float D = sumX * sumR2 - n * sumX * sumX2 - sumX * sumY2;
+            float E = sumY * sumR2 - n * sumY * sumY2 - sumY * sumX2;
+
+            float centerX = (D * B - E * C) / (A * B - C * C);
+            float centerY = (A * E - C * D) / (A * B - C * C);
+
+            return (centerX, centerY);
+        }
+        
+        public static (float X, float Y) FindLineCenter((float X, float Y)[] points)
+        {
+            int n = points.Length;
+            float sumX = points.Sum(p => p.X);
+            float sumY = points.Sum(p => p.Y);
+            float sumXY = points.Sum(p => p.X * p.Y);
+            float sumX2 = points.Sum(p => p.X * p.X);
+
+            float slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+            float intercept = (sumY - slope * sumX) / n;
+
+            float centerX = sumX / n;
+            float centerY = slope * centerX + intercept;
+
+            return (centerX, centerY);
+        }
 
         public static void AddTrackerStart(List<VRCAvatarParameterDriver.Parameter> parameterDriverParameters, string name)
         {
@@ -739,6 +745,12 @@ namespace Hackebein.ObjectTracking
         }
         
         public static void AddConfigValue(List<VRCAvatarParameterDriver.Parameter> parameterDriverParameters, int index, int value)
+        {
+            parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", value));
+            parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", index));
+        }
+        
+        public static void AddConfigValue(List<VRCAvatarParameterDriver.Parameter> parameterDriverParameters, int index, float value)
         {
             parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/value", value));
             parameterDriverParameters.Add(Utility.ParameterDriverParameterSet("ObjectTracking/config/index", index));

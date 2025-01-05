@@ -24,32 +24,12 @@ Pre-releases are essentially test versions that have undergone less rigorous tes
 ## Unity Setup Script
 ![Unity Setup Script](Docs/setup_script.png)
 
-### Pre-Setup
+### Setup
 * Add VPM Listing: [vpm.hackebein.dev](https://vpm.hackebein.dev) to VCC
 * Add VPM "Hackebein's Object Tracking Setup" to your Project
-* Add setup component by clicking<br>
-  top-navigation **>** Tools **>** Hackebein **>** Object Tracking Setup
-* (Optional) Start SteamVR and connect trackers you like to use
-
-### Quick Setup (simple)
-* Avatar: select your avatar<br>
-  <sup>_needs to contain Avatar Descriptor component_</sup>
-* Real height (in m)
-* If SteamVR is Running:
-  * click reload button
-  * click tracker you like to add
-* If SteamVR is not Running:
-  * click "Add Tracker"
-  * Serial Number: Can be obtained in SteamVR System Report<br>
-    <sup>_not S/N, which can be printed on your tracker_</sup>
-  * Tracker Type: Select how the tracker looks in editor
-* Prefab: Shows some more information about the prefab after selecting
-* Hide beyond limits: Hides the object if it goes beyond maximum range
-* Setup your Tracking costs
-* Press Create: Tracker gets generated at 0, 0 if "Apply last position" is unchecked
-* Align your object inside the object with the same serial number at 1:1 IRL scale
-
-Video: https://youtu.be/oxvaUqVMznQ (made with earlier version)
+* Add Empty GameObject as child to your Avatar
+* Add "Hackebein's Object Tracking Base Component" to the GameObject
+* Update Tracker  
 
 ### Menu Item
 #### ObjectTracking/tracker/\<SERIAL NUMBER\>/enabled
@@ -59,6 +39,7 @@ Toggle - Enables Object
 Toggle - stabalize movement if a lot of movement is going on
 
 #### ObjectTracking/isStabilized [Read Only]
+#### ObjectTracking/isLazyStabilized [Read Only]
 Button - shows if stabalization is active
 
 ### Debug Menu Item
