@@ -18,6 +18,7 @@ namespace hackebein.objecttracking
 {
     public static class Utility
     {
+        public static GameObject DefaultChildGameObject = null;
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
         {
             AnimatorControllerParameter parameter = new AnimatorControllerParameter
@@ -465,6 +466,10 @@ namespace hackebein.objecttracking
                 }
 
                 GameObject.DestroyImmediate(component);
+            }
+            if (DefaultChildGameObject != null)
+            {
+                GameObject.Instantiate(DefaultChildGameObject).transform.parent = gameObject.transform;
             }
         }
 

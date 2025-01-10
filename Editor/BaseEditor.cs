@@ -37,24 +37,39 @@ namespace hackebein.objecttracking
             {
                 EditorGUILayout.HelpBox("No Space in your Expression Menu. Upload might fail.", MessageType.Warning);
             }
-
-            using (new GUILayout.HorizontalScope())
-            {
-                GUILayout.Label("Tracker Positions", halfWidth);
-                if (GUILayout.Button("Update Once", quadWidth))
-                {
-                    baseComponent.ApplyPreview();
-                }
-                GUI.backgroundColor = baseComponent.updateInEditMode ? Color.green : Color.white;
-                if (GUILayout.Button("Update Continuously", quadWidth))
-                {
-                    baseComponent.updateInEditMode = !baseComponent.updateInEditMode;
-                }
-                GUI.backgroundColor = Color.white; // Reset to default color
-            }
             if (steamvr.TrackedDevices.CheckSystem() == null)
             {
                 EditorGUILayout.HelpBox("Please start SteamVR", MessageType.Warning);
+                if (GUILayout.Button("Retry"))
+                {
+                    baseComponent.updateInEditMode = true;
+                }
+            }
+            else
+            {
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("Tracker Positions", halfWidth);
+                    if (baseComponent.updateContinuously)
+                    {
+                        GUI.enabled = false;
+                    }
+                    if (GUILayout.Button("Update Once", quadWidth))
+                    {
+                        baseComponent.ApplyPreview();
+                        if (baseComponent.settings.addDebugMenu)
+                        {
+                            EditorPrefs.SetBool("Hackebein.ObjectTracking.ShowDebugView", true);
+                        }
+                    }
+                    GUI.enabled = true;
+                    GUI.backgroundColor = baseComponent.updateContinuously ? Color.green : Color.white;
+                    if (GUILayout.Button("Update Continuously", quadWidth))
+                    {
+                        baseComponent.updateContinuously = !baseComponent.updateContinuously;
+                    }
+                    GUI.backgroundColor = Color.white; // Reset to default color
+                }
             }
                     
             using (new GUILayout.HorizontalScope())
@@ -169,6 +184,12 @@ namespace hackebein.objecttracking
                     {
                         GUILayout.Label("Magic Number", halfWidth);
                         Base.magicNumber = EditorGUILayout.FloatField(Base.magicNumber, halfWidth);
+                    }
+                    
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.Label("Default Child GameObject", halfWidth);
+                        Utility.DefaultChildGameObject = EditorGUILayout.ObjectField(Utility.DefaultChildGameObject, typeof(GameObject), true, halfWidth) as GameObject;
                     }
 
                     using (new GUILayout.HorizontalScope())

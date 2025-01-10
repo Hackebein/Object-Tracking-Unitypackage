@@ -52,9 +52,15 @@ namespace hackebein.objecttracking
         }
 #endif
         public bool ignoreNewTrackers = false;
-        public bool updateInEditMode = false;
-        // https://sketchfab.com/3d-models/transform-gizmo-8d1edffdedda4898b3fb1c3c4c08113c
+
+        public bool updateInEditMode
+        {
+            get => steamvr.TrackedDevices.allowConnectingToSteamVR;
+            set => steamvr.TrackedDevices.allowConnectingToSteamVR = value;
+        }
+        public bool updateContinuously = false;
         public static float magicNumber = 1.074f;
+        // https://sketchfab.com/3d-models/transform-gizmo-8d1edffdedda4898b3fb1c3c4c08113c
         public static readonly string gizmoPath = "Packages/hackebein.objecttracking/Prefab/GizmoUnity.fbx";
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
         public Tracker[] GetTrackers(bool all = false)
@@ -64,7 +70,7 @@ namespace hackebein.objecttracking
         
         void OnRenderObject()
         {
-            if (updateInEditMode)
+            if (updateContinuously)
             {
                 ApplyPreview();
             }
@@ -99,7 +105,7 @@ namespace hackebein.objecttracking
                 {
                     Tracker trackerComponent = trackerObject.AddComponent<Tracker>();
                     trackerComponent.device = device;
-                    trackerComponent.updateInEditMode = updateInEditMode;
+                    trackerComponent.updateInEditMode = updateContinuously;
 
                     if (device.serialNumber == "SteamVRPlayArea")
                     {

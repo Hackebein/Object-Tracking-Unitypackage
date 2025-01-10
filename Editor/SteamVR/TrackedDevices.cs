@@ -57,6 +57,7 @@ namespace hackebein.objecttracking.steamvr
     [Serializable]
     public static class TrackedDevices
     {
+        public static bool allowConnectingToSteamVR = true;
         public static List<TrackedDevice> List = new List<TrackedDevice>();
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
         static TrackedDevices()
@@ -80,6 +81,8 @@ namespace hackebein.objecttracking.steamvr
         
         public static CVRSystem CheckSystem()
         {
+            if (!allowConnectingToSteamVR) return null;
+            
             CVRSystem system = OpenVR.System;
             if (system == null)
             {
@@ -88,11 +91,7 @@ namespace hackebein.objecttracking.steamvr
                 if (peError == EVRInitError.Init_HmdNotFound)
                 {
                     Debug.LogWarning("[Hackebein's Object Tracking] No HMD Found!");
-                    var baseComponents = Object.FindObjectsOfType<Base>();
-                    foreach (var baseComponent in baseComponents)
-                    {
-                        baseComponent.updateInEditMode = false;
-                    }
+                    allowConnectingToSteamVR = false;
                 }
                 else if (peError != EVRInitError.None)
                     EditorUtility.DisplayDialog("[Hackebein's Object Tracking] SteamVR/OpenVR: Unknown Error", "Error: " + peError, "OK");
