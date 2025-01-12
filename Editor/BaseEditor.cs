@@ -27,6 +27,10 @@ namespace hackebein.objecttracking
             var width1of6 = utility.UnityHelper.RelativeWidth((float)1 / 6, false);
             
             // basic checks
+            if (baseComponent.transform.parent == null)
+            {
+                return;
+            }
             if(baseComponent.transform.parent.gameObject.GetComponent<VRC_AvatarDescriptor>() == null)
             {
                 EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
@@ -81,7 +85,7 @@ namespace hackebein.objecttracking
             var trackersFoldout = utility.UnityHelper.Foldout("Hackebein.ObjectTracking.BaseEditor.TrackersFoldout", "Trackers", true);
             if (baseComponent.GetTrackers().Length == 0)
             {
-                EditorGUILayout.HelpBox("No enabled Trackers in scene found. Object Tracking disabled.", MessageType.Warning);
+                EditorGUILayout.HelpBox("No active Trackers detected in the scene. Object Tracking will be disabled if no trackers are present on upload.", MessageType.Warning);
             }
             if (trackersFoldout)
             {
@@ -93,21 +97,21 @@ namespace hackebein.objecttracking
                         GUI.enabled = false;
                         EditorGUILayout.ObjectField(tracker, typeof(Tracker), true, halfWidth);
                         GUI.enabled = true;
-                        if (string.IsNullOrEmpty(tracker.device.identifier) || baseComponent.settings.ignoreTrackeridentifiers.Contains(tracker.device.identifier))
+                        if (string.IsNullOrEmpty(tracker.settings.identifier) || baseComponent.settings.ignoreTrackeridentifiers.Contains(tracker.settings.identifier))
                         {
                             GUI.enabled = false;
                         }
                         if (GUILayout.Button("Ignore", width1of6))
                         {
                             baseComponent.settings.ignoreTrackeridentifiers =
-                                baseComponent.settings.ignoreTrackeridentifiers.Append(tracker.device.identifier).ToArray();
+                                baseComponent.settings.ignoreTrackeridentifiers.Append(tracker.settings.identifier).ToArray();
                         }
                         GUI.enabled = true;
 
-                        GUI.backgroundColor = tracker.tag == "Untagged" && !string.IsNullOrEmpty(tracker.device.identifier) ? Color.green : Color.white;
+                        GUI.backgroundColor = tracker.tag == "Untagged" && !string.IsNullOrEmpty(tracker.settings.identifier) ? Color.green : Color.white;
                         if (GUILayout.Button(tracker.tag == "Untagged" ? "Active" : "Enable", width1of6))
                         {
-                            if (string.IsNullOrEmpty(tracker.device.identifier))
+                            if (string.IsNullOrEmpty(tracker.settings.identifier))
                             {
                                 // TODO: this shouldn't be necessary, neither should it be here
                                 Selection.activeObject = tracker;
@@ -133,7 +137,7 @@ namespace hackebein.objecttracking
                 {
                     using (new GUILayout.HorizontalScope())
                     {
-                        // Show as disabled if found in baseComponent.GetTrackers()[].device.identifier
+                        // Show as disabled if found in baseComponent.GetTrackers()[].settings.identifier
                         GUILayout.Label(identifier, halfWidth);
                         if (GUILayout.Button("Remove", halfWidth))
                         {

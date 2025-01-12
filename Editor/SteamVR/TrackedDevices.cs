@@ -18,7 +18,17 @@ namespace hackebein.objecttracking.steamvr
     [Serializable]
     public class TrackedDevice
     {
-        public string identifier;
+        private string _identifier;
+
+        public string identifier
+        {
+            get => _identifier;
+            set
+            {
+                _identifier = value;
+                Update();
+            }
+        }
         public string serialNumber { get; private set; }
         public string modelNumber { get; private set; }
         public string manufacturerName { get; private set; }
@@ -29,7 +39,7 @@ namespace hackebein.objecttracking.steamvr
         public TrackedDevice() : this("", "", "", "", "", Vector3.zero, Vector3.zero) { }
         public TrackedDevice(string identifier, string serialNumber, string modelNumber, string manufacturerName, string trackingSystemName, Vector3 position, Vector3 rotation)
         {
-            this.identifier = identifier;
+            this._identifier = identifier;
             this.serialNumber = serialNumber;
             this.modelNumber = modelNumber;
             this.manufacturerName = manufacturerName;

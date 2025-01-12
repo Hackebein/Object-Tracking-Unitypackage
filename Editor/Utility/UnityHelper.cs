@@ -29,15 +29,14 @@ namespace hackebein.objecttracking.utility
     	}
 	     
 	    /* AvatarDescriptorEditor3.Foldout */
-	    public static bool Foldout(string editorPrefsKey, string label, bool deft = false)
-	    {
-		    
+		public static bool Foldout(string editorPrefsKey, string label, bool deft = false)
+		{
 		    bool prevState = EditorPrefs.GetBool(editorPrefsKey, deft);
 		    bool state = EditorGUILayout.Foldout(prevState, label);
 		    if (state != prevState)
-			    EditorPrefs.SetBool(editorPrefsKey, state);
+		        EditorPrefs.SetBool(editorPrefsKey, state);
 		    return state;
-	    }
+		}
 
 	    public static GUILayoutOption[] RelativeWidth(float width, bool boxed = false, float offset = 0)
 	    {

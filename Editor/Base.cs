@@ -65,15 +65,30 @@ namespace hackebein.objecttracking
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
         public Tracker[] GetTrackers(bool all = false)
         {
-            return gameObject.transform.parent.GetComponentsInChildren<Tracker>().Where(tracker => all || (tracker.tag != "EditorOnly" && tracker.device.identifier != "")).ToArray();
+            return gameObject.transform.parent.GetComponentsInChildren<Tracker>().Where(tracker => all || (tracker.tag != "EditorOnly" && tracker.settings.identifier != "")).ToArray();
         }
         
         void OnRenderObject()
         {
+            gameObject.transform.localPosition = Vector3.zero;
+            gameObject.transform.localRotation = Quaternion.identity;
+            gameObject.transform.localScale = Vector3.one;
             if (updateContinuously)
             {
                 ApplyPreview();
             }
+        }
+
+        public Vector3 GetScaleVector()
+        {
+            var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
+            if (avatarDescriptor == null)
+            {
+                throw new NullReferenceException("Parent GameObject must have a VRC_AvatarDescriptor component");
+            }
+            float scale = (avatarDescriptor.ViewPosition.y / (float)vrchat.PlayerHeights.GetCurrentHeight().CmValue * 100) * magicNumber;
+            scale = 1f;
+            return new Vector3(scale, scale, scale);
         }
         
         public void ApplyPreview()
@@ -86,13 +101,12 @@ namespace hackebein.objecttracking
             }
             
             // scale
-            float scale = (avatarDescriptor.ViewPosition.y / (float)vrchat.PlayerHeights.GetCurrentHeight().CmValue * 100) * magicNumber;
-            var scaleVector = new Vector3(scale, scale, scale);
+            var scaleVector = GetScaleVector();
 
             // tracker
             steamvr.TrackedDevices.Update().ForEach(device =>
             {
-                var isCreated = GetTrackers(true).Any(tracker => tracker.device.serialNumber == device.serialNumber);
+                var isCreated = GetTrackers().Any(tracker => tracker.settings.identifier == device.identifier);
                 var isIgnored = settings.ignoreTrackeridentifiers.Contains(device.identifier);
                 if (isIgnored && !isCreated)
                 {
@@ -104,7 +118,7 @@ namespace hackebein.objecttracking
                 if (isNewComponent)
                 {
                     Tracker trackerComponent = trackerObject.AddComponent<Tracker>();
-                    trackerComponent.device = device;
+                    trackerComponent.settings.identifier = device.identifier;
                     trackerComponent.updateInEditMode = updateContinuously;
 
                     if (device.serialNumber == "SteamVRPlayArea")
@@ -253,7 +267,7 @@ namespace hackebein.objecttracking
                         modelInstance.transform.localPosition = Vector3.zero;
                         modelInstance.transform.localRotation = Quaternion.Euler(new Vector3(0, 180f, 0));
                         modelInstance.transform.localScale = Vector3.one;
-                        modelInstance.name = trackerObject.name;
+                        modelInstance.name = trackerObject.name + " (Model)";
                     }
                     else
                     {
@@ -261,11 +275,10 @@ namespace hackebein.objecttracking
                         fallback.transform.localPosition = Vector3.zero;
                         fallback.transform.localRotation = Quaternion.Euler(new Vector3(0, 180f, 0));
                         fallback.transform.localScale = new Vector3(0.04f, 0.04f, -0.04f);
-                        fallback.name = trackerObject.name;
+                        fallback.name = trackerObject.name + " (Gizmo)";
                     }
                 }
                 Tracker tracker = trackerObject.GetComponent<Tracker>();
-                tracker.initialScale = scaleVector;
                 if (isNewComponent || tracker.updateInEditMode)
                 {
                     var devicePosition = new Vector3(device.position.x, device.position.y, device.position.z);
@@ -393,7 +406,7 @@ namespace hackebein.objecttracking
                 (animatorController, expressionParameters) = CreateTransitionLayer(animatorController, expressionParameters, tracker, tracker.settings.axes.Rotation.Z, "RZ", "VRCParentConstraint.Sources.source0.ParentRotationOffset.z");
                 Utility.MarkDirty(expressionParameters);
                 
-                GameObject trackerPositionRaw = Utility.FindOrCreateEmptyGameObject(tracker.device.identifier, gameObject);
+                GameObject trackerPositionRaw = Utility.FindOrCreateEmptyGameObject(tracker.settings.identifier, gameObject);
                 trackerPositionRaw.tag = "Untagged";
                 
                 VRCParentConstraint trackerPositionContraint = trackerPositionRaw.AddComponent<VRCParentConstraint>();
@@ -446,7 +459,7 @@ namespace hackebein.objecttracking
                         type = VRCExpressionsMenu.Control.ControlType.Toggle,
                         parameter = new VRCExpressionsMenu.Control.Parameter()
                         {
-                            name = "ObjectTracking/" + tracker.device.identifier + "/enabled"
+                            name = "ObjectTracking/" + tracker.settings.identifier + "/enabled"
                         },
                     });
                 }
@@ -528,7 +541,7 @@ namespace hackebein.objecttracking
                         type = VRCExpressionsMenu.Control.ControlType.Toggle,
                         parameter = new VRCExpressionsMenu.Control.Parameter()
                         {
-                            name = "ObjectTracking/" + tracker.device.identifier + "/enabled"
+                            name = "ObjectTracking/" + tracker.settings.identifier + "/enabled"
                         },
                         value = 0
                     });
@@ -541,7 +554,7 @@ namespace hackebein.objecttracking
                         {
                             new VRCExpressionsMenu.Control.Parameter()
                             {
-                                name = "ObjectTracking/" + tracker.device.identifier + "/LPX"
+                                name = "ObjectTracking/" + tracker.settings.identifier + "/LPX"
                             }
                         }
                     });
@@ -554,7 +567,7 @@ namespace hackebein.objecttracking
                         {
                             new VRCExpressionsMenu.Control.Parameter()
                             {
-                                name = "ObjectTracking/" + tracker.device.identifier + "/LPY"
+                                name = "ObjectTracking/" + tracker.settings.identifier + "/LPY"
                             }
                         }
                     });
@@ -567,7 +580,7 @@ namespace hackebein.objecttracking
                         {
                             new VRCExpressionsMenu.Control.Parameter()
                             {
-                                name = "ObjectTracking/" + tracker.device.identifier + "/LPZ"
+                                name = "ObjectTracking/" + tracker.settings.identifier + "/LPZ"
                             }
                         }
                     });
@@ -580,7 +593,7 @@ namespace hackebein.objecttracking
                         {
                             new VRCExpressionsMenu.Control.Parameter()
                             {
-                                name = "ObjectTracking/" + tracker.device.identifier + "/LRX"
+                                name = "ObjectTracking/" + tracker.settings.identifier + "/LRX"
                             }
                         }
                     });
@@ -593,7 +606,7 @@ namespace hackebein.objecttracking
                         {
                             new VRCExpressionsMenu.Control.Parameter()
                             {
-                                name = "ObjectTracking/" + tracker.device.identifier + "/LRY"
+                                name = "ObjectTracking/" + tracker.settings.identifier + "/LRY"
                             }
                         }
                     });
@@ -606,7 +619,7 @@ namespace hackebein.objecttracking
                         {
                             new VRCExpressionsMenu.Control.Parameter()
                             {
-                                name = "ObjectTracking/" + tracker.device.identifier + "/LRZ"
+                                name = "ObjectTracking/" + tracker.settings.identifier + "/LRZ"
                             }
                         }
                     });
@@ -617,14 +630,14 @@ namespace hackebein.objecttracking
                         type = VRCExpressionsMenu.Control.ControlType.Toggle,
                         parameter = new VRCExpressionsMenu.Control.Parameter()
                         {
-                            name = "ObjectTracking/" + tracker.device.identifier + "/enabled"
+                            name = "ObjectTracking/" + tracker.settings.identifier + "/enabled"
                         },
                         value = 1
                     });
                     expressionDebugSubMenu = vrchat.ExpressionMenu.CreateIfNeededMoreMenu(expressionDebugSubMenu);
                     expressionDebugSubMenu.controls.Add(new VRCExpressionsMenu.Control()
                     {
-                        name = tracker.name != tracker.device.identifier ? tracker.name + "<br>" + tracker.device.identifier + "" : tracker.device.identifier,
+                        name = tracker.name != tracker.settings.identifier ? tracker.name + "<br>" + tracker.settings.identifier + "" : tracker.settings.identifier,
                         icon = null,
                         type = VRCExpressionsMenu.Control.ControlType.SubMenu,
                         subMenu = expressionDebugSubMenuTracker
@@ -650,7 +663,7 @@ namespace hackebein.objecttracking
                 name = "Local",
                 writeDefaultValues = false,
                 timeParameterActive = true,
-                timeParameter = "ObjectTracking/" + tracker.device.identifier + "/L" + name
+                timeParameter = "ObjectTracking/" + tracker.settings.identifier + "/L" + name
             };
 
             ChildAnimatorState stateLocalChild = new ChildAnimatorState
@@ -665,7 +678,7 @@ namespace hackebein.objecttracking
                 name = "Remote",
                 writeDefaultValues = false,
                 timeParameterActive = true,
-                timeParameter = "ObjectTracking/" + tracker.device.identifier + "/R" + name
+                timeParameter = "ObjectTracking/" + tracker.settings.identifier + "/R" + name
             };
 
             ChildAnimatorState stateRemoteChild = new ChildAnimatorState
@@ -675,7 +688,7 @@ namespace hackebein.objecttracking
             };
 
             // Layer
-            AnimatorControllerLayer layer = Utility.CreateLayer("ObjectTracking/" + tracker.device.identifier + "/" + name);
+            AnimatorControllerLayer layer = Utility.CreateLayer("ObjectTracking/" + tracker.settings.identifier + "/" + name);
             layer.stateMachine.states = new[] { stateLocalChild, stateRemoteChild };
             animatorController.layers = animatorController.layers.Append(layer).ToArray();
 
@@ -711,9 +724,9 @@ namespace hackebein.objecttracking
 
             // Clip
             stateLocal.motion =
-                Utility.CreateClip(tracker.device.identifier + "/L" + name, gameObject.name + "/" + tracker.device.identifier, property, axe.Local.ValueMin, axe.Local.ValueMax, settings.assetFolder + "/" + settings.uuid + "/Tracker");
+                Utility.CreateClip(tracker.settings.identifier + "/L" + name, gameObject.name + "/" + tracker.settings.identifier, property, axe.Local.ValueMin, axe.Local.ValueMax, settings.assetFolder + "/" + settings.uuid + "/Tracker");
             stateRemote.motion =
-                Utility.CreateClip(tracker.device.identifier + "/R" + name, gameObject.name + "/" + tracker.device.identifier, property, axe.Remote.ValueMin, axe.Remote.ValueMax, settings.assetFolder + "/" + settings.uuid + "/Tracker");
+                Utility.CreateClip(tracker.settings.identifier + "/R" + name, gameObject.name + "/" + tracker.settings.identifier, property, axe.Remote.ValueMin, axe.Remote.ValueMax, settings.assetFolder + "/" + settings.uuid + "/Tracker");
 
             Utility.AddSubAssetsToDatabase(layer, animatorController);
             return (animatorController, expressionParameters);
@@ -752,7 +765,7 @@ namespace hackebein.objecttracking
             };
 
             // Layer
-            AnimatorControllerLayer layer = Utility.CreateLayer("ObjectTracking/" + tracker.device.identifier + "/HideBeyondLimits");
+            AnimatorControllerLayer layer = Utility.CreateLayer("ObjectTracking/" + tracker.settings.identifier + "/HideBeyondLimits");
             layer.stateMachine.states = new[] { stateHideChild, stateShowChild };
             animatorController.layers = animatorController.layers.Append(layer).ToArray();
 
@@ -774,34 +787,34 @@ namespace hackebein.objecttracking
             };
             var conditionsToShowLocalFloat = new List<Tuple<string, AnimatorConditionMode, float>>
             {
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPX", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPX", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPY", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPY", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPZ", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPZ", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRX", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRX", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRY", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRY", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRZ", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRZ", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPX", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPX", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPY", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPY", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPZ", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPZ", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRX", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRX", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRY", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRY", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRZ", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRZ", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Local.Bits)))),
             };
             
             var conditionsToShowRemoteFloat = new List<Tuple<string, AnimatorConditionMode, float>>
             {
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPX", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPX", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPY", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPY", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPZ", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPZ", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRX", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRX", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRY", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRY", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRZ", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRZ", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPX", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPX", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPY", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPY", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPZ", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPZ", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRX", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRX", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRY", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRY", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRZ", AnimatorConditionMode.Greater, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRZ", AnimatorConditionMode.Less, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Remote.Bits)))),
             };
             
             var conditionsToHideLocalBool = new Tuple<string, bool>[]
@@ -820,33 +833,33 @@ namespace hackebein.objecttracking
             };
             var conditionsToHideLocalFloat = new List<Tuple<string, AnimatorConditionMode, float>>
             {
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPX", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPX", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPY", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPY", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPZ", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LPZ", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRX", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRX", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRY", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRY", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRZ", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Local.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/LRZ", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPX", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPX", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPY", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPY", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPZ", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LPZ", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRX", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRX", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRY", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRY", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRZ", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Local.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/LRZ", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Local.Bits)))),
             };
             var conditionsToHideRemoteFloat = new List<Tuple<string, AnimatorConditionMode, float>>
             {
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPX", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPX", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPY", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPY", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPZ", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RPZ", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRX", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRX", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRY", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRY", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRZ", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Remote.Bits)))),
-                Tuple.Create("ObjectTracking/" + tracker.device.identifier + "/RRZ", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPX", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPX", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.X.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPY", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPY", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Y.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPZ", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RPZ", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Position.Z.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRX", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRX", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.X.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRY", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRY", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Y.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRZ", AnimatorConditionMode.Less, (float)(1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Remote.Bits)))),
+                Tuple.Create("ObjectTracking/" + tracker.settings.identifier + "/RRZ", AnimatorConditionMode.Greater, (float)(1 - 1 / Math.Pow(2, Math.Min(12, tracker.settings.axes.Rotation.Z.Remote.Bits)))),
             };
             
             stateHide.transitions = new[]
@@ -873,9 +886,9 @@ namespace hackebein.objecttracking
 
             // Clip
             stateShow.motion =
-                Utility.CreateClip(tracker.device.identifier + "/ShowInsideLimits", tracker.name, "GameObject.m_IsActive", 1, 1, settings.assetFolder + "/" + settings.uuid + "/Tracker");
+                Utility.CreateClip(tracker.settings.identifier + "/ShowInsideLimits", tracker.name, "GameObject.m_IsActive", 1, 1, settings.assetFolder + "/" + settings.uuid + "/Tracker");
             stateHide.motion =
-                Utility.CreateClip(tracker.device.identifier + "/HideBeyondLimits", tracker.name, "GameObject.m_IsActive", 0, 0, settings.assetFolder + "/" + settings.uuid + "/Tracker");
+                Utility.CreateClip(tracker.settings.identifier + "/HideBeyondLimits", tracker.name, "GameObject.m_IsActive", 0, 0, settings.assetFolder + "/" + settings.uuid + "/Tracker");
 
             Utility.AddSubAssetsToDatabase(layer, animatorController);
             return (animatorController, expressionParameters);
@@ -940,10 +953,10 @@ namespace hackebein.objecttracking
             Utility.AddTrackerEnd(parameterDriverParametersLocal, "global");
             foreach(Tracker tracker in GetTrackers())
             {
-                expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.device.identifier + "/enabled", true, true, false);
-                expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/" + tracker.device.identifier, false, false, false);
-                animatorController = Utility.CreateBoolParameterAndAddToAnimator(animatorController, "ObjectTracking/config/" + tracker.device.identifier);
-                Utility.AddTrackerStart(parameterDriverParametersLocal, tracker.device.identifier);
+                expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.settings.identifier + "/enabled", true, true, false);
+                expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/config/" + tracker.settings.identifier, false, false, false);
+                animatorController = Utility.CreateBoolParameterAndAddToAnimator(animatorController, "ObjectTracking/config/" + tracker.settings.identifier);
+                Utility.AddTrackerStart(parameterDriverParametersLocal, tracker.settings.identifier);
                 int i = 1;
                 // TODO: verify if inputs are between limits
                 Utility.AddConfigValue(parameterDriverParametersLocal, i++, tracker.settings.axes.Position.X.Remote.Bits);
@@ -976,7 +989,7 @@ namespace hackebein.objecttracking
                 Utility.AddConfigValue(parameterDriverParametersLocal, i++, tracker.settings.axes.Rotation.X.Remote.ValueMax);
                 Utility.AddConfigValue(parameterDriverParametersLocal, i++, tracker.settings.axes.Rotation.Y.Remote.ValueMax);
                 Utility.AddConfigValue(parameterDriverParametersLocal, i++, tracker.settings.axes.Rotation.Z.Remote.ValueMax);
-                Utility.AddTrackerEnd(parameterDriverParametersLocal, tracker.device.identifier);
+                Utility.AddTrackerEnd(parameterDriverParametersLocal, tracker.settings.identifier);
             }
             
             VRCAvatarParameterDriver parameterDriverLocal = ScriptableObject.CreateInstance<VRCAvatarParameterDriver>();
@@ -1014,8 +1027,8 @@ namespace hackebein.objecttracking
                 };
                 foreach ((AxeTarget target, string name) axe in axeTargetsLocal)
                 {
-                    animatorController = Utility.CreateFloatParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name);
-                    expressionParameters = Utility.CreateFloatParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name, 0f, false, false);
+                    animatorController = Utility.CreateFloatParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name);
+                    expressionParameters = Utility.CreateFloatParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name, 0f, false, false);
                 }
                 
                 (AxeTarget target, string name)[] axeTargetsRemote = new[]
@@ -1032,30 +1045,30 @@ namespace hackebein.objecttracking
                     int accuracy = axe.target.Bits;
                     int accuracyBytes = accuracy / 8;
                     int accuracyBits = accuracy - (accuracyBytes * 8);
-                    animatorController = Utility.CreateFloatParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name);
+                    animatorController = Utility.CreateFloatParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name);
                     for (int i = 0; i < accuracyBytes; i++)
                     {
                         float multiplicator = Utility.GetAAPMultiplicator(accuracy, 8 * i, 8);
-                        expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Byte" + i, 0, false, true);
-                        animatorController = Utility.CreateIntParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Byte" + i);
-                        animatorController = Utility.CreateFloatParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Byte" + i + "-Float");
+                        expressionParameters = Utility.CreateIntParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i, 0, false, true);
+                        animatorController = Utility.CreateIntParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i);
+                        animatorController = Utility.CreateFloatParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i + "-Float");
                         parameterDriverParametersRemote.Add(Utility.ParameterDriverParameterIntToFloat(
-                            "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Byte" + i,
-                            "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Byte" + i + "-Float"));
-                        motionsRemote.Add("ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Byte" + i + "-Float",
-                            Utility.CreateClip(tracker.device.identifier + "/" + axe.name + "-Byte" + i, "", "Animator.ObjectTracking/" + tracker.device.identifier + "/" + axe.name, multiplicator, multiplicator, settings.assetFolder + "/" + settings.uuid + "/Tracker"));
+                            "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i,
+                            "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i + "-Float"));
+                        motionsRemote.Add("ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i + "-Float",
+                            Utility.CreateClip(tracker.settings.identifier + "/" + axe.name + "-Byte" + i, "", "Animator.ObjectTracking/" + tracker.settings.identifier + "/" + axe.name, multiplicator, multiplicator, settings.assetFolder + "/" + settings.uuid + "/Tracker"));
                     }
                     for (int i = 0; i < accuracyBits; i++)
                     {
                         float multiplicator = Utility.GetAAPMultiplicator(accuracy, 8 * accuracyBytes + i, 1);
-                        expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Bit" + i, false, false, true);
-                        animatorController = Utility.CreateBoolParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Bit" + i);
-                        animatorController = Utility.CreateFloatParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Bit" + i + "-Float");
+                        expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i, false, false, true);
+                        animatorController = Utility.CreateBoolParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i);
+                        animatorController = Utility.CreateFloatParameterAndAddToAnimator(animatorController, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i + "-Float");
                         parameterDriverParametersRemote.Add(Utility.ParameterDriverParameterBoolToFloat(
-                            "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Bit" + i,
-                            "ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Bit" + i + "-Float"));
-                        motionsRemote.Add("ObjectTracking/" + tracker.device.identifier + "/" + axe.name + "-Bit" + i + "-Float",
-                            Utility.CreateClip(tracker.device.identifier + "/" + axe.name + "-Bit" + i, "", "Animator.ObjectTracking/" + tracker.device.identifier + "/" + axe.name, multiplicator, multiplicator, settings.assetFolder + "/" + settings.uuid + "/Tracker"));
+                            "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i,
+                            "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i + "-Float"));
+                        motionsRemote.Add("ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i + "-Float",
+                            Utility.CreateClip(tracker.settings.identifier + "/" + axe.name + "-Bit" + i, "", "Animator.ObjectTracking/" + tracker.settings.identifier + "/" + axe.name, multiplicator, multiplicator, settings.assetFolder + "/" + settings.uuid + "/Tracker"));
                     }
                 }                
             }

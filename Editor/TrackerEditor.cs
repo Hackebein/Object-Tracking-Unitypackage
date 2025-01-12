@@ -38,100 +38,111 @@ namespace hackebein.objecttracking
             var tracker = (Tracker)target;
             var halfWidth = utility.UnityHelper.RelativeWidth((float)1/2, false);
             
-            var avatar = tracker.transform.parent.GetComponent<VRCAvatarDescriptor>();
             // basic checks
-            if(avatar == null)
+            if (tracker.transform.parent != null)
             {
-                EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
-                return;
-            }
-
-            Base baseComponent = avatar.GetComponentInChildren<Base>();
-            if(baseComponent == null)
-            {
-                var ObjectTrackingGameObject = Utility.FindOrCreateEmptyGameObject("ObjectTracking", tracker.transform.parent.gameObject);
-                baseComponent = ObjectTrackingGameObject.AddComponent<Base>();
-            }
-            using (new GUILayout.HorizontalScope())
-            {
-                GUILayout.Label("Base Component", halfWidth);
-                GUI.enabled = false;
-                EditorGUILayout.ObjectField(baseComponent, typeof(Base), true, halfWidth);
-                GUI.enabled = true;
-            }
-
-            using (new GUILayout.HorizontalScope())
-            {
-                GUI.backgroundColor = tracker.tag == "Untagged" ? Color.green : Color.white;
-                if (GUILayout.Button(tracker.tag == "Untagged" ? "Active" : "Enable", halfWidth))
+                var avatar = tracker.transform.parent.GetComponent<VRCAvatarDescriptor>();
+                if (avatar == null)
                 {
-                    tracker.tag = tracker.tag == "Untagged" ? "EditorOnly" : "Untagged";
+                    EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
+                    return;
                 }
 
-                GUI.backgroundColor = Color.white; // Reset to default color
-
-                if (GUILayout.Button("Remove", halfWidth))
+                Base baseComponent = avatar.GetComponentInChildren<Base>();
+                if (baseComponent == null)
                 {
-                    Utility.ResetGameObject(tracker.gameObject);
+                    var ObjectTrackingGameObject = Utility.FindOrCreateEmptyGameObject("ObjectTracking", avatar.gameObject);
+                    baseComponent = ObjectTrackingGameObject.AddComponent<Base>();
                 }
-            }
-            
-            if (string.IsNullOrEmpty(tracker.device.serialNumber) && string.IsNullOrEmpty(tracker.device.modelNumber) && string.IsNullOrEmpty(tracker.device.manufacturerName) && string.IsNullOrEmpty(tracker.device.trackingSystemName))
-            {
+
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Label("Tracker identifier", halfWidth);
-                    tracker.device.identifier = EditorGUILayout.TextField(tracker.device.identifier, halfWidth);
-                }
-                
-                if (string.IsNullOrEmpty(tracker.device.identifier))
-                {
-                    EditorGUILayout.HelpBox("Please enter a valid identifier", MessageType.Error);
+                    GUILayout.Label("Base Component", halfWidth);
                     GUI.enabled = false;
+                    EditorGUILayout.ObjectField(baseComponent, typeof(Base), true, halfWidth);
+                    GUI.enabled = true;
                 }
-                
+
                 using (new GUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("Update Meta Data", halfWidth))
+                    GUI.backgroundColor = tracker.tag == "Untagged" ? Color.green : Color.white;
+                    if (GUILayout.Button(tracker.tag == "Untagged" ? "Active" : "Enable", halfWidth))
                     {
-                        tracker.device.Update();
+                        tracker.tag = tracker.tag == "Untagged" ? "EditorOnly" : "Untagged";
+                    }
+
+                    GUI.backgroundColor = Color.white; // Reset to default color
+
+                    if (GUILayout.Button("Remove", halfWidth))
+                    {
+                        Utility.ResetGameObject(tracker.gameObject);
                     }
                 }
-
-                GUI.enabled = true;
             }
-            else
+
+            var foldoutInfo = false;
+            using (new GUILayout.HorizontalScope())
+            {
+                foldoutInfo = utility.UnityHelper.Foldout("Hackebein.ObjectTracking.TrackerEditor.TrackerInfoFoldout", "Tracker Identifier", true);
+                //GUILayout.Label("Tracker Identifier", halfWidth);
+                tracker.settings.identifier = EditorGUILayout.TextField(tracker.settings.identifier, halfWidth);
+            }
+            GUILayout.Space(2); // Somehow this is needed to prevent overlapping
+            
+            var availableIdentifiers = steamvr.TrackedDevices.List.Select(device => device.identifier).ToArray();
+            if (!availableIdentifiers.Contains(tracker.settings.identifier))
+            {
+                availableIdentifiers = availableIdentifiers.Append(tracker.settings.identifier).ToArray();
+            }
+            if (availableIdentifiers.Length > 1)
+            {
+                using (new GUILayout.HorizontalScope())
+                {
+                    GUILayout.Label("", halfWidth);
+                    tracker.settings.identifier =
+                        availableIdentifiers[EditorGUILayout.Popup("", Array.IndexOf(availableIdentifiers, tracker.settings.identifier), availableIdentifiers, halfWidth)];
+                }
+            }
+            if (tracker.device == null)
+            {
+                
+                if (string.IsNullOrEmpty(tracker.settings.identifier))
+                {
+                    EditorGUILayout.HelpBox("Please enter a valid identifier", MessageType.Error);
+                }
+            }
+            if (foldoutInfo)
             {
                 using (new GUILayout.HorizontalScope())
                 {
                     GUILayout.Label("Serial Number", halfWidth);
                     GUI.enabled = false;
-                    EditorGUILayout.TextField(tracker.device.serialNumber, halfWidth);
+                    EditorGUILayout.TextField(tracker.device != null ? tracker.device.serialNumber : "", halfWidth);
                     GUI.enabled = true;
                 }
                 using (new GUILayout.HorizontalScope())
                 {
                     GUILayout.Label("Model Number", halfWidth);
                     GUI.enabled = false;
-                    EditorGUILayout.TextField(tracker.device.modelNumber, halfWidth);
+                    EditorGUILayout.TextField(tracker.device != null ? tracker.device.modelNumber : "", halfWidth);
                     GUI.enabled = true;
                 }
                 using (new GUILayout.HorizontalScope())
                 {
                     GUILayout.Label("Manufacturer Name", halfWidth);
                     GUI.enabled = false;
-                    EditorGUILayout.TextField(tracker.device.manufacturerName, halfWidth);
+                    EditorGUILayout.TextField(tracker.device != null ? tracker.device.manufacturerName : "", halfWidth);
                     GUI.enabled = true;
                 }
                 using (new GUILayout.HorizontalScope())
                 {
                     GUILayout.Label("Tracking System Name", halfWidth);
                     GUI.enabled = false;
-                    EditorGUILayout.TextField(tracker.device.trackingSystemName, halfWidth);
+                    EditorGUILayout.TextField(tracker.device != null ? tracker.device.trackingSystemName : "", halfWidth);
                     GUI.enabled = true;
                 }
+                GUILayout.Space(5);
             }
-
             using (new GUILayout.HorizontalScope())
             {
                 // TODO: info 0.00 (0%) - 1.00 (100%)

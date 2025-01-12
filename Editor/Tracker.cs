@@ -29,14 +29,20 @@ namespace hackebein.objecttracking
         [Serializable]
         public class Settings
         {
+            public string identifier;
             public Axes axes = new Axes();
             public float PositionDamping = 0.05f;
             public float RotationDamping = 0.03f;
             public bool hideBeyondLimits = true;
         }
         public Settings settings = new Settings();
-        public TrackedDevice device = new TrackedDevice();
-        public Vector3 initialScale = Vector3.one;
+        public TrackedDevice device
+        {
+            get
+            {
+                return steamvr.TrackedDevices.List.Find(d => d.identifier == settings.identifier);
+            }
+        }
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
         public bool showDebugView
         {
@@ -48,10 +54,6 @@ namespace hackebein.objecttracking
         public bool showPossibleLocalPositions = true;
         public bool showPossibleRemotePositions = true;
         public Tracker(){}
-        public Tracker(TrackedDevice device)
-        {
-            this.device = device;
-        }
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
@@ -68,16 +70,34 @@ namespace hackebein.objecttracking
         void OnRenderObject()
         {
             gameObject.transform.localPosition = new Vector3(
-                settings.axes.Position.X.Local.Bits > 0 ? gameObject.transform.localPosition.x : device.position.x,
-                settings.axes.Position.Y.Local.Bits > 0 ? gameObject.transform.localPosition.y : device.position.y,
-                settings.axes.Position.Z.Local.Bits > 0 ? gameObject.transform.localPosition.z : device.position.z
+                settings.axes.Position.X.Local.Bits > 0 ? gameObject.transform.localPosition.x : 0,
+                settings.axes.Position.Y.Local.Bits > 0 ? gameObject.transform.localPosition.y : 0,
+                settings.axes.Position.Z.Local.Bits > 0 ? gameObject.transform.localPosition.z : 0
             );
             gameObject.transform.localRotation = Quaternion.Euler(
-                settings.axes.Rotation.X.Local.Bits > 0 ? gameObject.transform.localRotation.eulerAngles.x : device.rotation.x,
-                settings.axes.Rotation.Y.Local.Bits > 0 ? gameObject.transform.localRotation.eulerAngles.y : device.rotation.y,
-                settings.axes.Rotation.Z.Local.Bits > 0 ? gameObject.transform.localRotation.eulerAngles.z : device.rotation.z
+                settings.axes.Rotation.X.Local.Bits > 0 ? gameObject.transform.localRotation.eulerAngles.x : 0,
+                settings.axes.Rotation.Y.Local.Bits > 0 ? gameObject.transform.localRotation.eulerAngles.y : 0,
+                settings.axes.Rotation.Z.Local.Bits > 0 ? gameObject.transform.localRotation.eulerAngles.z : 0
             );
-            gameObject.transform.localScale = initialScale;
+            // if baseComponent is not found scale 1,1,1
+            // if baseComponent is found scale from GetScaleVector()
+            var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
+            if (avatarDescriptor == null)
+            {
+                gameObject.transform.localScale = new Vector3(1, 1, 1);
+            }
+            else
+            {
+                var baseComponent = avatarDescriptor.GetComponentInChildren<Base>();
+                if (baseComponent == null)
+                {
+                    gameObject.transform.localScale = new Vector3(1, 1, 1);
+                }
+                else
+                {
+                    gameObject.transform.localScale = baseComponent.GetScaleVector();
+                }
+            }
         }
         
         private void DrawGizmos(Color color, AxeGroup axeGroup, bool local)
