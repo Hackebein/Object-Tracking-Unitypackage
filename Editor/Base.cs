@@ -1210,6 +1210,7 @@ namespace hackebein.objecttracking
             }
             if (settings.addLazyStabilization)
             {
+                animatorController = Utility.CreateBoolParameterAndAddToAnimator(animatorController, "IsAnimatorEnabled", true);
                 animatorController = Utility.CreateBoolParameterAndAddToAnimator(animatorController, "ObjectTracking/isLazyStabilized");
                 expressionParameters = Utility.CreateBoolParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/isLazyStabilized", false, false, true);
                 
@@ -1312,7 +1313,7 @@ namespace hackebein.objecttracking
                 };
             }
             
-            // Animation State Lazy On
+            // Animation State Lazy On and Animator Disabled
             if (settings.addLazyStabilization)
             {
                 AnimatorState stateLazyOn = new AnimatorState
@@ -1340,6 +1341,22 @@ namespace hackebein.objecttracking
 
                 layer.stateMachine.states = layer.stateMachine.states.Append(stateLazyOnChild).ToArray();
                 
+                AnimatorState stateAnimatorDisabled = new AnimatorState
+                {
+                    name = "Animator Disabled",
+                    writeDefaultValues = false,
+                    // TODO: hide all objects
+                    motion = ignoreClip // Utility.CreateClip("Stabilization/Animator Disabled", gameObject.name, unknown, 0, 0, settings.assetFolder + "/" + settings.uuid), hiding all objects?
+                };
+                
+                ChildAnimatorState stateAnimatorDisabledChild = new ChildAnimatorState
+                {
+                    state = stateAnimatorDisabled,
+                    position = new Vector3(-210, 190, 0)
+                };
+                
+                layer.stateMachine.states = layer.stateMachine.states.Append(stateAnimatorDisabledChild).ToArray();
+                
                 Tuple<string, bool>[] conditionsToLazyOnBools = new Tuple<string, bool>[]
                 {
                     Tuple.Create("IsLocal", true),
@@ -1357,14 +1374,34 @@ namespace hackebein.objecttracking
 
                 transitionsOff.Add(Utility.CreateTransition("isLazyStabilization", conditionsToLazyOnBools, conditionsToLazyOnFloats, stateLazyOn));
                 
+                Tuple<string, bool>[] conditionsToAnimatorDisabled = new Tuple<string, bool>[]
+                {
+                    Tuple.Create("IsAnimatorEnabled", false)
+                };
                 Tuple<string, bool>[] conditionsLazyOnToOffBools = new Tuple<string, bool>[]
                 {
                     Tuple.Create("ObjectTracking/goStabilized", true)
                 };
+                Tuple<string, bool>[] conditionsAnimatorDisabledToOff1 = new Tuple<string, bool>[]
+                {
+                    Tuple.Create("IsAnimatorEnabled", true),
+                    Tuple.Create("ObjectTracking/isLazyStabilized", false)
+                };
+                Tuple<string, bool>[] conditionsAnimatorDisabledToOff2 = new Tuple<string, bool>[]
+                {
+                    Tuple.Create("ObjectTracking/isStabilized", true)
+                };
                 stateLazyOn.transitions = new[]
                 {
+                    Utility.CreateTransition("isDisablingAnimator", conditionsToAnimatorDisabled, stateAnimatorDisabled),
                     Utility.CreateTransition("isUnstabilization", conditionsLazyOnToOffBools, stateOff)
                 };
+                stateAnimatorDisabled.transitions = new[]
+                {
+                    Utility.CreateTransition("isEnablingAnimator", conditionsAnimatorDisabledToOff1, stateOff),
+                    Utility.CreateTransition("isEnablingAnimator", conditionsAnimatorDisabledToOff2, stateOff)
+                };
+                stateOff.transitions = stateOff.transitions.Append(Utility.CreateTransition("isDisablingAnimator", conditionsToAnimatorDisabled, stateAnimatorDisabled)).ToArray();
                 
                 Tuple<string, AnimatorConditionMode, float>[][] conditionsLazyOnToOffFloatsArray = new Tuple<string, AnimatorConditionMode, float>[][]
                 {
