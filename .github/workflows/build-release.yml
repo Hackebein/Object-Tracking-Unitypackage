@@ -38,9 +38,13 @@ jobs:
           echo "unityPackage=${{ steps.name.outputs.value }}-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
           echo "version=${{ steps.version.outputs.value }}" >> $GITHUB_ENV
       
+      - name: Create Unity Folder Structure
+        run: |
+          mkdir -p Packages/${{ steps.name.outputs.value }}
+
       # *.unitypackage
       - name: Track Package Meta Files
-        run: find . -name \*.meta > metaList
+        run: find Packages/${{ steps.name.outputs.value }} -name \*.meta > metaList
       
       - name: Create UnityPackage
         uses: pCYSl5EDgo/create-unitypackage@b5c57408698b1fab8b3a84d4b67f767b8b7c0be9
