@@ -29,6 +29,7 @@ namespace hackebein.objecttracking
             // basic checks
             if (baseComponent.transform.parent == null)
             {
+                EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
                 return;
             }
             if(baseComponent.transform.parent.gameObject.GetComponent<VRC_AvatarDescriptor>() == null)

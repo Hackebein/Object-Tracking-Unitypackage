@@ -81,22 +81,29 @@ namespace hackebein.objecttracking
             );
             // if baseComponent is not found scale 1,1,1
             // if baseComponent is found scale from GetScaleVector()
-            var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
-            if (avatarDescriptor == null)
+            if (gameObject.transform.parent != null)
             {
-                gameObject.transform.localScale = new Vector3(1, 1, 1);
-            }
-            else
-            {
-                var baseComponent = avatarDescriptor.GetComponentInChildren<Base>();
-                if (baseComponent == null)
+                var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
+                if (avatarDescriptor == null)
                 {
                     gameObject.transform.localScale = new Vector3(1, 1, 1);
                 }
                 else
                 {
-                    gameObject.transform.localScale = baseComponent.GetScaleVector();
+                    var baseComponent = avatarDescriptor.GetComponentInChildren<Base>();
+                    if (baseComponent == null)
+                    {
+                        gameObject.transform.localScale = new Vector3(1, 1, 1);
+                    }
+                    else
+                    {
+                        gameObject.transform.localScale = baseComponent.GetScaleVector();
+                    }
                 }
+            }
+            else
+            {
+                gameObject.transform.localScale = new Vector3(1, 1, 1);
             }
         }
         
@@ -112,10 +119,13 @@ namespace hackebein.objecttracking
             min.Scale(scale);
             max.Scale(scale);
             var size = max - min;
-            Vector3 origin = gameObject.transform.parent.transform.position;
-            Vector3 start = origin + min;
-            Vector3 center = start + size / 2;
-            Gizmos.DrawWireCube(center, size);
+            if (gameObject.transform.parent != null)
+            {
+                var origin = gameObject.transform.parent.transform.position;
+                var start = origin + min;
+                var center = start + size / 2;
+                Gizmos.DrawWireCube(center, size);
+            }
         }  
 #endif
     }

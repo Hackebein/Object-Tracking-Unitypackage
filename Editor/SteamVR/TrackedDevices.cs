@@ -100,7 +100,7 @@ namespace hackebein.objecttracking.steamvr
                 OpenVR.Init(ref peError, EVRApplicationType.VRApplication_Other, "");
                 if (peError == EVRInitError.Init_HmdNotFound)
                 {
-                    Debug.LogWarning("[Hackebein's Object Tracking] No HMD Found!");
+                    Debug.LogWarning("[Hackebein's Object Tracking] SteamVR is not running!");
                     allowConnectingToSteamVR = false;
                 }
                 else if (peError != EVRInitError.None)

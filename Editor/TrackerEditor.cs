@@ -39,15 +39,20 @@ namespace hackebein.objecttracking
             var halfWidth = utility.UnityHelper.RelativeWidth((float)1/2, false);
             
             // basic checks
+            if (tracker.transform.parent == null)
+            {
+                EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
+                return;
+            }
+            var avatar = tracker.transform.parent.GetComponent<VRCAvatarDescriptor>();
+            if (avatar == null)
+            {
+                EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
+                return;
+            }
+            
             if (tracker.transform.parent != null)
             {
-                var avatar = tracker.transform.parent.GetComponent<VRCAvatarDescriptor>();
-                if (avatar == null)
-                {
-                    EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
-                    return;
-                }
-
                 Base baseComponent = avatar.GetComponentInChildren<Base>();
                 if (baseComponent == null)
                 {
