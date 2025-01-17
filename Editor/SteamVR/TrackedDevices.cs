@@ -26,7 +26,9 @@ namespace hackebein.objecttracking.steamvr
             set
             {
                 _identifier = value;
+#if VRC_SDK_VRCSDK3 && UNITY_EDITOR
                 Update();
+#endif
             }
         }
         public string serialNumber { get; private set; }
