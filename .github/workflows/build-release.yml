@@ -41,6 +41,10 @@ jobs:
       - name: Create Unity Folder Structure
         run: |
           mkdir -p Packages/${{ steps.name.outputs.value }}
+          rsync -av \
+            --exclude='.*' \
+            --exclude='Packages/${{ steps.name.outputs.value }}' \
+            . Packages/${{ steps.name.outputs.value }}
 
       # *.unitypackage
       - name: Track Package Meta Files
