@@ -1265,7 +1265,7 @@ namespace hackebein.objecttracking
             {
                 AnimatorState stateOn = new AnimatorState
                 {
-                    name = "On",
+                    name = "On (local only)",
                     writeDefaultValues = false,
                     motion = ignoreClip
                 };
@@ -1343,10 +1343,10 @@ namespace hackebein.objecttracking
                 
                 AnimatorState stateAnimatorDisabled = new AnimatorState
                 {
-                    name = "Animator Disabled",
+                    name = "Animator Disabled (remote only)",
                     writeDefaultValues = false,
-                    // TODO: hide all objects
-                    motion = ignoreClip // Utility.CreateClip("Stabilization/Animator Disabled", gameObject.name, unknown, 0, 0, settings.assetFolder + "/" + settings.uuid), hiding all objects?
+                    motion = ignoreClip
+                    // TODO: set isSyncIssue to true. set tracker position/rotation variables to fake-0
                 };
                 
                 ChildAnimatorState stateAnimatorDisabledChild = new ChildAnimatorState
@@ -1401,7 +1401,7 @@ namespace hackebein.objecttracking
                     Utility.CreateTransition("isEnablingAnimator", conditionsAnimatorDisabledToOff1, stateOff),
                     Utility.CreateTransition("isEnablingAnimator", conditionsAnimatorDisabledToOff2, stateOff)
                 };
-                stateOff.transitions = stateOff.transitions.Append(Utility.CreateTransition("isDisablingAnimator", conditionsToAnimatorDisabled, stateAnimatorDisabled)).ToArray();
+                transitionsOff.Add(Utility.CreateTransition("isAnimatorDisabled", conditionsToAnimatorDisabled, stateAnimatorDisabled));
                 
                 Tuple<string, AnimatorConditionMode, float>[][] conditionsLazyOnToOffFloatsArray = new Tuple<string, AnimatorConditionMode, float>[][]
                 {
