@@ -38,10 +38,7 @@ namespace hackebein.objecttracking
         public Settings settings = new Settings();
         public TrackedDevice device
         {
-            get
-            {
-                return steamvr.TrackedDevices.List.Find(d => d.identifier == settings.identifier);
-            }
+            get => steamvr.TrackedDevices.List.Find(d => d.identifier == settings.identifier);
         }
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
         public bool showDebugView
@@ -50,7 +47,7 @@ namespace hackebein.objecttracking
             set => EditorPrefs.SetBool("Hackebein.ObjectTracking.ShowDebugView", value);
         }
 #endif
-        public bool updateInEditMode = false;
+        public bool? updateContinuously = null;
         public bool showPossibleLocalPositions = true;
         public bool showPossibleRemotePositions = true;
         public Tracker(){}
@@ -79,29 +76,8 @@ namespace hackebein.objecttracking
                 settings.axes.Rotation.Y.Local.Bits > 0 ? gameObject.transform.localRotation.eulerAngles.y : 0,
                 settings.axes.Rotation.Z.Local.Bits > 0 ? gameObject.transform.localRotation.eulerAngles.z : 0
             );
-            // if baseComponent is not found scale 1,1,1
-            // if baseComponent is found scale from GetScaleVector()
-            if (gameObject.transform.parent != null)
-            {
-                var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
-                if (avatarDescriptor == null)
-                {
-                    gameObject.transform.localScale = new Vector3(1, 1, 1);
-                }
-                else
-                {
-                    var baseComponent = avatarDescriptor.GetComponentInChildren<Base>();
-                    if (baseComponent == null)
-                    {
-                        gameObject.transform.localScale = new Vector3(1, 1, 1);
-                    }
-                    else
-                    {
-                        gameObject.transform.localScale = baseComponent.GetScaleVector();
-                    }
-                }
-            }
-            else
+            
+            if (gameObject.transform.parent == null)
             {
                 gameObject.transform.localScale = new Vector3(1, 1, 1);
             }

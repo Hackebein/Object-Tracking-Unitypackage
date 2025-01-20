@@ -80,7 +80,19 @@ namespace hackebein.objecttracking
 
                     if (GUILayout.Button("Remove", halfWidth))
                     {
-                        Utility.ResetGameObject(tracker.gameObject);
+                        var child = tracker.transform.Find(tracker.settings.identifier);
+                        if (child != null)
+                        {
+                            DestroyImmediate(child.gameObject);
+                        }
+                        if (tracker.transform.childCount == 0)
+                        {
+                            DestroyImmediate(tracker.gameObject);
+                        }
+                        else
+                        {
+                            Utility.ResetGameObject(tracker.gameObject);
+                        }
                     }
                 }
             }
@@ -166,12 +178,6 @@ namespace hackebein.objecttracking
             {
                 GUILayout.Label("Hide Beyond Limits", halfWidth);
                 tracker.settings.hideBeyondLimits = EditorGUILayout.Toggle(tracker.settings.hideBeyondLimits, halfWidth);
-            }
-                
-            using (new GUILayout.HorizontalScope())
-            {
-                GUILayout.Label("Update In Edit Mode", halfWidth);
-                tracker.updateInEditMode = EditorGUILayout.Toggle(tracker.updateInEditMode, halfWidth);
             }
             
             InspectorGuiAxeGroup(tracker.settings.axes.Position, "Position", 1f);

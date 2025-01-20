@@ -58,7 +58,6 @@ namespace hackebein.objecttracking
             get => steamvr.TrackedDevices.allowConnectingToSteamVR;
             set => steamvr.TrackedDevices.allowConnectingToSteamVR = value;
         }
-        public bool updateContinuously = false;
         public static float magicNumber = 1.074f;
         // https://sketchfab.com/3d-models/transform-gizmo-8d1edffdedda4898b3fb1c3c4c08113c
         public static readonly string gizmoPath = "Packages/hackebein.objecttracking/Prefab/GizmoUnity.fbx";
@@ -73,10 +72,28 @@ namespace hackebein.objecttracking
             gameObject.transform.localPosition = Vector3.zero;
             gameObject.transform.localRotation = Quaternion.identity;
             gameObject.transform.localScale = Vector3.one;
-            if (updateContinuously)
+            var scaleVector = GetScaleVector();
+            steamvr.TrackedDevices.Update().ForEach((device) =>
             {
-                ApplyPreview();
-            }
+                var tracker = GetTrackers(true).FirstOrDefault(tracker => tracker.settings.identifier == device.identifier);
+                if (tracker == null)
+                {
+                    return;
+                }
+
+                if (tracker.updateContinuously == true)
+                {
+                    var devicePosition = new Vector3(device.position.x, device.position.y, device.position.z);
+                    devicePosition.Scale(scaleVector);
+                    tracker.transform.localPosition = devicePosition;
+                    tracker.transform.localRotation = Quaternion.Euler(device.rotation);
+                } 
+                tracker.transform.localScale = scaleVector;
+                if (tracker.updateContinuously == false)
+                {
+                    tracker.updateContinuously = null;
+                }
+            });
         }
 
         public Vector3 GetScaleVector()
@@ -91,7 +108,7 @@ namespace hackebein.objecttracking
             return new Vector3(scale, scale, scale);
         }
         
-        public void ApplyPreview()
+        public void GeneratePlayspace()
         {
             // avatar descriptor
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
@@ -106,187 +123,172 @@ namespace hackebein.objecttracking
             // tracker
             steamvr.TrackedDevices.Update().ForEach(device =>
             {
-                var isCreated = GetTrackers().Any(tracker => tracker.settings.identifier == device.identifier);
+                var isAlreadyCreated = GetTrackers(true).Any(tracker => tracker.settings.identifier == device.identifier);
                 var isIgnored = settings.ignoreTrackeridentifiers.Contains(device.identifier);
-                if (isIgnored && !isCreated)
+                if (isIgnored || isAlreadyCreated)
                 {
                     return;
                 }
                 // tracker object
                 GameObject trackerObject = Utility.FindOrCreateEmptyGameObject(device.identifier, gameObject.transform.parent.gameObject, new List<Type> { typeof(Tracker) });
-                var isNewComponent = trackerObject.GetComponent<Tracker>() == null;
-                if (isNewComponent)
+                Tracker trackerComponent = trackerObject.AddComponent<Tracker>();
+                trackerComponent.settings.identifier = device.identifier;
+
+                if (device.serialNumber == "SteamVRPlayArea")
                 {
-                    Tracker trackerComponent = trackerObject.AddComponent<Tracker>();
-                    trackerComponent.settings.identifier = device.identifier;
-                    trackerComponent.updateInEditMode = updateContinuously;
-
-                    if (device.serialNumber == "SteamVRPlayArea")
+                    trackerComponent.settings.axes.Position.Y.Local.Bits = 0;
+                    trackerComponent.settings.axes.Position.Y.Local.ValueMin = 0f;
+                    trackerComponent.settings.axes.Position.Y.Local.ValueMax = 0f;
+                    trackerComponent.settings.axes.Rotation.X.Local.Bits = 0;
+                    trackerComponent.settings.axes.Rotation.X.Local.ValueMin = 0f;
+                    trackerComponent.settings.axes.Rotation.X.Local.ValueMax = 0f;
+                    trackerComponent.settings.axes.Rotation.Z.Local.Bits = 0;
+                    trackerComponent.settings.axes.Rotation.Z.Local.ValueMin = 0f;
+                    trackerComponent.settings.axes.Rotation.Z.Local.ValueMax = 0f;
+                    trackerComponent.settings.axes.Position.Y.Remote.Bits = 0;
+                    trackerComponent.settings.axes.Position.Y.Remote.ValueMin = 0f;
+                    trackerComponent.settings.axes.Position.Y.Remote.ValueMax = 0f;
+                    trackerComponent.settings.axes.Rotation.X.Remote.Bits = 0;
+                    trackerComponent.settings.axes.Rotation.X.Remote.ValueMin = 0f;
+                    trackerComponent.settings.axes.Rotation.X.Remote.ValueMax = 0f;
+                    trackerComponent.settings.axes.Rotation.Z.Remote.Bits = 0;
+                    trackerComponent.settings.axes.Rotation.Z.Remote.ValueMin = 0f;
+                    trackerComponent.settings.axes.Rotation.Z.Remote.ValueMax = 0f;
+                    
+                    /*
+                    HmdQuad_t playArea = new HmdQuad_t();
+                    var color = Color.cyan;
+                    var chaperone = OpenVR.Chaperone;
+                    bool success = (chaperone != null) && chaperone.GetPlayAreaRect(ref playArea) && chaperone.GetCalibrationState() == ChaperoneCalibrationState.OK;
+                    if (!success)
                     {
-                        trackerComponent.settings.axes.Position.Y.Local.Bits = 0;
-                        trackerComponent.settings.axes.Position.Y.Local.ValueMin = 0f;
-                        trackerComponent.settings.axes.Position.Y.Local.ValueMax = 0f;
-                        trackerComponent.settings.axes.Rotation.X.Local.Bits = 0;
-                        trackerComponent.settings.axes.Rotation.X.Local.ValueMin = 0f;
-                        trackerComponent.settings.axes.Rotation.X.Local.ValueMax = 0f;
-                        trackerComponent.settings.axes.Rotation.Z.Local.Bits = 0;
-                        trackerComponent.settings.axes.Rotation.Z.Local.ValueMin = 0f;
-                        trackerComponent.settings.axes.Rotation.Z.Local.ValueMax = 0f;
-                        trackerComponent.settings.axes.Position.Y.Remote.Bits = 0;
-                        trackerComponent.settings.axes.Position.Y.Remote.ValueMin = 0f;
-                        trackerComponent.settings.axes.Position.Y.Remote.ValueMax = 0f;
-                        trackerComponent.settings.axes.Rotation.X.Remote.Bits = 0;
-                        trackerComponent.settings.axes.Rotation.X.Remote.ValueMin = 0f;
-                        trackerComponent.settings.axes.Rotation.X.Remote.ValueMax = 0f;
-                        trackerComponent.settings.axes.Rotation.Z.Remote.Bits = 0;
-                        trackerComponent.settings.axes.Rotation.Z.Remote.ValueMin = 0f;
-                        trackerComponent.settings.axes.Rotation.Z.Remote.ValueMax = 0f;
-                        
-                        /*
-                        HmdQuad_t playArea = new HmdQuad_t();
-                        var color = Color.cyan;
-                        var chaperone = OpenVR.Chaperone;
-                        bool success = (chaperone != null) && chaperone.GetPlayAreaRect(ref playArea) && chaperone.GetCalibrationState() == ChaperoneCalibrationState.OK;
-                        if (!success)
-                        {
-                            Debug.LogError("[Hackebein's Object Tracking] Failed to retrieve the play area rectangle.");
-                            return;
-                        }
-                        var corners = new HmdVector3_t[] { playArea.vCorners0, playArea.vCorners1, playArea.vCorners2, playArea.vCorners3 };
-                        Debug.Log($"[Hackebein's Object Tracking] Play Area Corners: {corners[0]}, {corners[1]}, {corners[2]}, {corners[3]}");
-                        
-		                var vertices = new Vector3[corners.Length * 2];
-		                for (int i = 0; i < corners.Length; i++)
-		                {
-			                var c = corners[i];
-			                vertices[i] = new Vector3(c.v0, 0.01f, c.v2);
-		                }
-
-		                for (int i = 0; i < corners.Length; i++)
-		                {
-			                int next = (i + 1) % corners.Length;
-			                int prev = (i + corners.Length - 1) % corners.Length;
-
-			                var nextSegment = (vertices[next] - vertices[i]).normalized;
-			                var prevSegment = (vertices[prev] - vertices[i]).normalized;
-
-			                var vert = vertices[i];
-			                vert += Vector3.Cross(nextSegment, Vector3.up) * 0.01f;
-			                vert += Vector3.Cross(prevSegment, Vector3.down) * 0.01f;
-
-			                vertices[corners.Length + i] = vert;
-		                }
-
-		                var triangles = new int[]
-		                {
-			                0, 1, 4,
-			                1, 5, 4,
-			                1, 2, 5,
-			                2, 6, 5,
-			                2, 3, 6,
-			                3, 7, 6,
-			                3, 0, 7,
-			                0, 4, 7
-		                };
-
-		                var uv = new Vector2[]
-		                {
-			                new Vector2(0.0f, 0.0f),
-			                new Vector2(1.0f, 0.0f),
-			                new Vector2(0.0f, 0.0f),
-			                new Vector2(1.0f, 0.0f),
-			                new Vector2(0.0f, 1.0f),
-			                new Vector2(1.0f, 1.0f),
-			                new Vector2(0.0f, 1.0f),
-			                new Vector2(1.0f, 1.0f)
-		                };
-
-		                var colors = new Color[]
-		                {
-			                color,
-			                color,
-			                color,
-			                color,
-			                new Color(color.r, color.g, color.b, 0.0f),
-			                new Color(color.r, color.g, color.b, 0.0f),
-			                new Color(color.r, color.g, color.b, 0.0f),
-			                new Color(color.r, color.g, color.b, 0.0f)
-		                };
-                        
-                        var mesh = new Mesh();
-                        mesh.vertices = vertices;
-                        mesh.uv = uv;
-                        mesh.colors = colors;
-                        mesh.triangles = triangles;
-                        
-                        Utility.RemoveGameObjects("SteamVR PlayArea", trackerObject);
-                        var boundryObject = Utility.FindOrCreateEmptyGameObject("SteamVR PlayArea", trackerObject);
-                        boundryObject.transform.localRotation = Quaternion.Euler(new Vector3(0, 180f, 0));
-                        
-                        var meshFilter = boundryObject.AddComponent<MeshFilter>();
-                        meshFilter.mesh = mesh;
-
-		                var renderer = boundryObject.AddComponent<MeshRenderer>();
-		                //renderer.material = Resources.GetBuiltinResource<Material>("Sprites-Default.mat");
-		                renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-		                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-		                renderer.receiveShadows = false;
-		                renderer.lightProbeUsage = LightProbeUsage.Off;
-                        */
+                        Debug.LogError("[Hackebein's Object Tracking] Failed to retrieve the play area rectangle.");
+                        return;
                     }
-                    // tracker model
-                    Utility.RemoveGameObjects(device.identifier, trackerObject);
-                    string[] paths = new string[]
-                    {
-                        $"Assets/Hackebein/ObjectTracking/Prefab/BySerialNumber/{utility.Input.MakeNameSafe(device.serialNumber)}.fbx",
-                        $"Assets/Hackebein/ObjectTracking/Prefab/ByModelNumber/{utility.Input.MakeNameSafe(device.modelNumber)}.fbx",
-                        $"Assets/Hackebein/ObjectTracking/Prefab/ByManufacturerName/{utility.Input.MakeNameSafe(device.manufacturerName)}.fbx",
-                        $"Assets/Hackebein/ObjectTracking/Prefab/ByTrackingSystemName/{utility.Input.MakeNameSafe(device.trackingSystemName)}.fbx",
-                        $"Packages/hackebein.objecttracking/Prefab/BySerialNumber/{utility.Input.MakeNameSafe(device.serialNumber)}.fbx",
-                        $"Packages/hackebein.objecttracking/Prefab/ByModelNumber/{utility.Input.MakeNameSafe(device.modelNumber)}.fbx",
-                        $"Packages/hackebein.objecttracking/Prefab/ByManufacturerName/{utility.Input.MakeNameSafe(device.manufacturerName)}.fbx",
-                        $"Packages/hackebein.objecttracking/Prefab/ByTrackingSystemName/{utility.Input.MakeNameSafe(device.trackingSystemName)}.fbx",
-                    };
-                    GameObject model = null;
-                    foreach (string path in paths)
-                    {
-                        if (File.Exists(path))
-                        {
-                            model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                            break;
-                        }
-                        else
-                        {
-                            Debug.Log($"[Hackebein's Object Tracking] Searching for Tracker Model at `{path}`");
-                        }
-                    }
+                    var corners = new HmdVector3_t[] { playArea.vCorners0, playArea.vCorners1, playArea.vCorners2, playArea.vCorners3 };
+                    Debug.Log($"[Hackebein's Object Tracking] Play Area Corners: {corners[0]}, {corners[1]}, {corners[2]}, {corners[3]}");
+                    
+		            var vertices = new Vector3[corners.Length * 2];
+		            for (int i = 0; i < corners.Length; i++)
+		            {
+			            var c = corners[i];
+			            vertices[i] = new Vector3(c.v0, 0.01f, c.v2);
+		            }
 
-                    if (model != null)
+		            for (int i = 0; i < corners.Length; i++)
+		            {
+			            int next = (i + 1) % corners.Length;
+			            int prev = (i + corners.Length - 1) % corners.Length;
+
+			            var nextSegment = (vertices[next] - vertices[i]).normalized;
+			            var prevSegment = (vertices[prev] - vertices[i]).normalized;
+
+			            var vert = vertices[i];
+			            vert += Vector3.Cross(nextSegment, Vector3.up) * 0.01f;
+			            vert += Vector3.Cross(prevSegment, Vector3.down) * 0.01f;
+
+			            vertices[corners.Length + i] = vert;
+		            }
+
+		            var triangles = new int[]
+		            {
+			            0, 1, 4,
+			            1, 5, 4,
+			            1, 2, 5,
+			            2, 6, 5,
+			            2, 3, 6,
+			            3, 7, 6,
+			            3, 0, 7,
+			            0, 4, 7
+		            };
+
+		            var uv = new Vector2[]
+		            {
+			            new Vector2(0.0f, 0.0f),
+			            new Vector2(1.0f, 0.0f),
+			            new Vector2(0.0f, 0.0f),
+			            new Vector2(1.0f, 0.0f),
+			            new Vector2(0.0f, 1.0f),
+			            new Vector2(1.0f, 1.0f),
+			            new Vector2(0.0f, 1.0f),
+			            new Vector2(1.0f, 1.0f)
+		            };
+
+		            var colors = new Color[]
+		            {
+			            color,
+			            color,
+			            color,
+			            color,
+			            new Color(color.r, color.g, color.b, 0.0f),
+			            new Color(color.r, color.g, color.b, 0.0f),
+			            new Color(color.r, color.g, color.b, 0.0f),
+			            new Color(color.r, color.g, color.b, 0.0f)
+		            };
+                    
+                    var mesh = new Mesh();
+                    mesh.vertices = vertices;
+                    mesh.uv = uv;
+                    mesh.colors = colors;
+                    mesh.triangles = triangles;
+                    
+                    Utility.RemoveGameObject("SteamVR PlayArea", trackerObject);
+                    var boundryObject = Utility.FindOrCreateEmptyGameObject("SteamVR PlayArea", trackerObject);
+                    boundryObject.transform.localRotation = Quaternion.Euler(new Vector3(0, 180f, 0));
+                    
+                    var meshFilter = boundryObject.AddComponent<MeshFilter>();
+                    meshFilter.mesh = mesh;
+
+		            var renderer = boundryObject.AddComponent<MeshRenderer>();
+		            //renderer.material = Resources.GetBuiltinResource<Material>("Sprites-Default.mat");
+		            renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+		            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+		            renderer.receiveShadows = false;
+		            renderer.lightProbeUsage = LightProbeUsage.Off;
+                    */
+                }
+                // tracker model
+                Utility.RemoveGameObject(device.identifier, trackerObject);
+                string[] paths = new string[]
+                {
+                    $"Assets/Hackebein/ObjectTracking/Prefab/BySerialNumber/{utility.Input.MakeNameSafe(device.serialNumber)}.fbx",
+                    $"Assets/Hackebein/ObjectTracking/Prefab/ByModelNumber/{utility.Input.MakeNameSafe(device.modelNumber)}.fbx",
+                    $"Assets/Hackebein/ObjectTracking/Prefab/ByManufacturerName/{utility.Input.MakeNameSafe(device.manufacturerName)}.fbx",
+                    $"Assets/Hackebein/ObjectTracking/Prefab/ByTrackingSystemName/{utility.Input.MakeNameSafe(device.trackingSystemName)}.fbx",
+                    $"Packages/hackebein.objecttracking/Prefab/BySerialNumber/{utility.Input.MakeNameSafe(device.serialNumber)}.fbx",
+                    $"Packages/hackebein.objecttracking/Prefab/ByModelNumber/{utility.Input.MakeNameSafe(device.modelNumber)}.fbx",
+                    $"Packages/hackebein.objecttracking/Prefab/ByManufacturerName/{utility.Input.MakeNameSafe(device.manufacturerName)}.fbx",
+                    $"Packages/hackebein.objecttracking/Prefab/ByTrackingSystemName/{utility.Input.MakeNameSafe(device.trackingSystemName)}.fbx",
+                    $"{gizmoPath}"
+                };
+                GameObject model = null;
+                foreach (string path in paths)
+                {
+                    if (File.Exists(path))
                     {
-                        GameObject modelInstance = Object.Instantiate(model, Vector3.zero, Quaternion.identity, trackerObject.transform);
-                        modelInstance.transform.localPosition = Vector3.zero;
-                        modelInstance.transform.localRotation = Quaternion.Euler(new Vector3(0, 180f, 0));
-                        modelInstance.transform.localScale = Vector3.one;
-                        modelInstance.name = trackerObject.name + " (Model)";
+                        model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                        break;
                     }
                     else
                     {
-                        GameObject fallback = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(gizmoPath), Vector3.zero, Quaternion.identity, trackerObject.transform);
-                        fallback.transform.localPosition = Vector3.zero;
-                        fallback.transform.localRotation = Quaternion.Euler(new Vector3(0, 180f, 0));
-                        fallback.transform.localScale = new Vector3(0.04f, 0.04f, -0.04f);
-                        fallback.name = trackerObject.name + " (Gizmo)";
+                        Debug.Log($"[Hackebein's Object Tracking] Searching for Tracker Model at `{path}`");
                     }
                 }
-                Tracker tracker = trackerObject.GetComponent<Tracker>();
-                if (isNewComponent || tracker.updateInEditMode)
+
+                if (model != null)
                 {
-                    var devicePosition = new Vector3(device.position.x, device.position.y, device.position.z);
-                    devicePosition.Scale(scaleVector);
-                    trackerObject.transform.localPosition = devicePosition;
-                    trackerObject.transform.localRotation = Quaternion.Euler(device.rotation);
-                    trackerObject.transform.localScale = scaleVector;
+                    GameObject modelInstance = Object.Instantiate(model, Vector3.zero, Quaternion.identity, trackerObject.transform);
+                    modelInstance.transform.localPosition = Vector3.zero;
+                    modelInstance.transform.localRotation = Quaternion.Euler(new Vector3(0, 180f, 0));
+                    modelInstance.transform.localScale = Vector3.one;
+                    modelInstance.name = trackerComponent.settings.identifier;
                 }
+                
+                var devicePosition = new Vector3(device.position.x, device.position.y, device.position.z);
+                devicePosition.Scale(scaleVector);
+                trackerObject.transform.localPosition = devicePosition;
+                trackerObject.transform.localRotation = Quaternion.Euler(device.rotation);
+                trackerObject.transform.localScale = scaleVector;
             });
         }
         
@@ -306,12 +308,15 @@ namespace hackebein.objecttracking
             }
             
             // Cleanup
-            Cleanup();
-            Utility.ResetGameObject(gameObject, new List<Type>{typeof(Base)});
-            for(int i = 0; i < gameObject.transform.childCount; i++)
+            if (Directory.Exists(settings.assetFolder))
             {
-                GameObject.DestroyImmediate(gameObject.transform.GetChild(i).gameObject);
+                Utility.RemoveAssets(settings.assetFolder + "/" + settings.uuid);
+                if (Directory.GetDirectories(settings.assetFolder, "*", SearchOption.AllDirectories).Length == 0)
+                {
+                    AssetDatabase.DeleteAsset(settings.assetFolder);
+                }
             }
+            Utility.ResetGameObject(gameObject, new List<Type>{typeof(Base)});
             
             // avatar descriptor
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
@@ -1436,6 +1441,11 @@ namespace hackebein.objecttracking
             }
             
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
+            if (avatarDescriptor == null)
+            {
+                throw new NullReferenceException("Parent GameObject must have a VRC_AvatarDescriptor component");
+            }
+
             AnimatorController animatorController = null;
             VRCAvatarDescriptor.CustomAnimLayer[] customAnimLayers = avatarDescriptor.baseAnimationLayers;
             for (int i = 0; i < customAnimLayers.Length; i++)
@@ -1452,13 +1462,34 @@ namespace hackebein.objecttracking
                 Utility.RemoveLayerStartingWith("ObjectTracking/", animatorController);
                 Utility.RemoveAnimatorParametersStartingWith("ObjectTracking/", animatorController);
             }
-
+        
             var expressionParameters = avatarDescriptor.expressionParameters;
             if (expressionParameters != null)
             {
                 Utility.RemoveExpressionParametersStartingWith("ObjectTracking/", expressionParameters);
             }
+        
+            if (avatarDescriptor.expressionsMenu != null)
+            {
+                avatarDescriptor.expressionsMenu.controls.RemoveAll(control => control.name.Contains("Object Tracking"));
+                EditorUtility.SetDirty(avatarDescriptor.expressionsMenu);
+            }
+        
+            Utility.ResetGameObject(gameObject, new List<Type> { typeof(Base) });
+        
+            for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
+            {
+                var child = gameObject.transform.GetChild(i);
+                Utility.RemoveGameObject(child.name, gameObject);
+            }
+        
+            var trackers = GetTrackers(true);
+            foreach (var tracker in trackers)
+            {
+                Utility.ResetGameObject(tracker.gameObject, new List<Type> { typeof(Tracker) });
+            }
         }
+        
 #endif
     }
 }

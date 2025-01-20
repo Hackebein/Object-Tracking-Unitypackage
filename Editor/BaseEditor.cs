@@ -44,7 +44,7 @@ namespace hackebein.objecttracking
             }
             if (steamvr.TrackedDevices.CheckSystem() == null)
             {
-                EditorGUILayout.HelpBox("Please start SteamVR", MessageType.Warning);
+                EditorGUILayout.HelpBox("Start SteamVR, to load Tracker informations", MessageType.Warning);
                 if (GUILayout.Button("Retry"))
                 {
                     baseComponent.updateInEditMode = true;
@@ -54,26 +54,15 @@ namespace hackebein.objecttracking
             {
                 using (new GUILayout.HorizontalScope())
                 {
-                    GUILayout.Label("Tracker Positions", halfWidth);
-                    if (baseComponent.updateContinuously)
+                    GUILayout.Label("Playspace", halfWidth);
+                    if (GUILayout.Button("Generate (missing) Playspace", halfWidth))
                     {
-                        GUI.enabled = false;
-                    }
-                    if (GUILayout.Button("Update Once", quadWidth))
-                    {
-                        baseComponent.ApplyPreview();
+                        baseComponent.GeneratePlayspace();
                         if (baseComponent.settings.addDebugMenu)
                         {
                             EditorPrefs.SetBool("Hackebein.ObjectTracking.ShowDebugView", true);
                         }
                     }
-                    GUI.enabled = true;
-                    GUI.backgroundColor = baseComponent.updateContinuously ? Color.green : Color.white;
-                    if (GUILayout.Button("Update Continuously", quadWidth))
-                    {
-                        baseComponent.updateContinuously = !baseComponent.updateContinuously;
-                    }
-                    GUI.backgroundColor = Color.white; // Reset to default color
                 }
             }
                     
@@ -92,7 +81,6 @@ namespace hackebein.objecttracking
             {
                 foreach (var tracker in baseComponent.GetTrackers(true))
                 {
-
                     using (new GUILayout.HorizontalScope())
                     {
                         GUI.enabled = false;
@@ -126,8 +114,67 @@ namespace hackebein.objecttracking
                         
                         if (GUILayout.Button("Remove", width1of6))
                         {
-                            Utility.ResetGameObject(tracker.gameObject);
+                            var child = tracker.transform.Find(tracker.settings.identifier);
+                            if (child != null)
+                            {
+                                DestroyImmediate(child.gameObject);
+                            }
+                            if (tracker.transform.childCount == 0)
+                            {
+                                DestroyImmediate(tracker.gameObject);
+                            }
+                            else
+                            {
+                                Utility.ResetGameObject(tracker.gameObject);
+                            }
                         }
+                    }
+                    
+                    if (steamvr.TrackedDevices.CheckSystem() != null)
+                    {
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            var availableIdentifiers = steamvr.TrackedDevices.List.Select(device => device.identifier).ToArray();
+                            if (!availableIdentifiers.Contains(tracker.settings.identifier))
+                            {
+                                availableIdentifiers = availableIdentifiers.Append(tracker.settings.identifier).ToArray();
+                            }
+                            if (availableIdentifiers.Length > 1)
+                            {
+                                tracker.settings.identifier =
+                                    availableIdentifiers[EditorGUILayout.Popup("", Array.IndexOf(availableIdentifiers, tracker.settings.identifier), availableIdentifiers, halfWidth)];
+                            }
+                            else
+                            {
+                                GUILayout.Label(tracker.settings.identifier, halfWidth);
+                            }
+                            
+                            if (string.IsNullOrEmpty(tracker.settings.identifier))
+                            {
+                                GUI.enabled = false;
+                            }
+                            if (tracker.updateContinuously != null)
+                            {
+                                GUI.enabled = false;
+                            }
+                            if (GUILayout.Button("Update Once", quadWidth))
+                            {
+                                tracker.updateContinuously = false;
+                            }
+                            GUI.enabled = true;
+                            if (string.IsNullOrEmpty(tracker.settings.identifier))
+                            {
+                                GUI.enabled = false;
+                            }
+                            GUI.backgroundColor = tracker.updateContinuously == true ? Color.green : Color.white;
+                            if (GUILayout.Button("Update Continuously", quadWidth))
+                            {
+                                tracker.updateContinuously = (tracker.updateContinuously == true) ? null : true;
+                            }
+                            GUI.enabled = true;
+                            GUI.backgroundColor = Color.white; // Reset to default color
+                        }
+                        GUILayout.Space(5);
                     }
                 }
             }
@@ -194,7 +241,7 @@ namespace hackebein.objecttracking
                     using (new GUILayout.HorizontalScope())
                     {
                         GUILayout.Label("Default Child GameObject", halfWidth);
-                        Utility.DefaultChildGameObject = EditorGUILayout.ObjectField(Utility.DefaultChildGameObject, typeof(GameObject), true, halfWidth) as GameObject;
+                        Utility.DefaultChildGameObject = EditorGUILayout.ObjectField(Utility.DefaultChildGameObject, typeof(GameObject), false, halfWidth) as GameObject;
                     }
 
                     using (new GUILayout.HorizontalScope())

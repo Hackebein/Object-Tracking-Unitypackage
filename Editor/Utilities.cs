@@ -18,6 +18,7 @@ namespace hackebein.objecttracking
 {
     public static class Utility
     {
+        [SerializeField]
         public static GameObject DefaultChildGameObject = null;
         public static AnimatorControllerParameter CreateBoolAnimatorParameter(string name, bool value = false)
         {
@@ -469,7 +470,9 @@ namespace hackebein.objecttracking
             }
             if (DefaultChildGameObject != null)
             {
-                GameObject.Instantiate(DefaultChildGameObject).transform.parent = gameObject.transform;
+                GameObject instance = GameObject.Instantiate(DefaultChildGameObject);
+                instance.name = DefaultChildGameObject.name;
+                instance.transform.parent = gameObject.transform;
             }
         }
 
@@ -555,11 +558,11 @@ namespace hackebein.objecttracking
 
         public static bool IsCostViable(int expected, int max, int usedTotal, int used) => expected <= max - usedTotal + used;
 
-        public static void RemoveGameObjects(string name, GameObject root)
+        public static void RemoveGameObject(string name, GameObject root)
         {
             foreach (Transform child in root.transform)
             {
-                if (child.name.StartsWith(name))
+                if (child.name == name)
                 {
                     GameObject.DestroyImmediate(child.gameObject);
                 }
