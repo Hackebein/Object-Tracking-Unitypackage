@@ -59,7 +59,8 @@ jobs:
       # *.zip
       - name: Create Package Zip
         run: |
-          sed 'p;s/\.meta$//' metaList > fileList
+          cd Packages/${{ steps.name.outputs.value }}
+          find . -name \*.meta | sed 'p;s/\.meta$//' > fileList
           zip -r ${{ env.zipFile }} . -i @fileList
       
       # Publish the Release to GitHub
