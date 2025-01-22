@@ -26,7 +26,8 @@ Pre-releases are essentially test versions that have undergone less rigorous tes
 * Add VPM "Hackebein's Object Tracking" to your Project (not "Hackebein's Object Tracking Setup")
 * Add Empty Game Object as child to your Avatar
 * Add "Hackebein's Object Tracking Base Component" to the GameObject
-* Update Tracker (Once/Continuously)
+* Start SteamVR, if it's not running
+* Generate (missing) Playspace
 
 ### Base Component
 ![Base Component](Docs/base_component.png)
