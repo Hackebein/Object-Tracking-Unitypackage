@@ -74,7 +74,7 @@ namespace hackebein.objecttracking.steamvr
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
         static TrackedDevices()
         {
-            CheckSystem();
+            Update();
         }
 	    private static string GetTrackedDeviceString(uint deviceIndex, ETrackedDeviceProperty prop)
 	    {
