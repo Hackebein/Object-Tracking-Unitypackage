@@ -313,15 +313,7 @@ namespace hackebein.objecttracking
             }
             
             // Cleanup
-            if (Directory.Exists(settings.assetFolder))
-            {
-                Utility.RemoveAssets(settings.assetFolder + "/" + settings.uuid);
-                if (Directory.GetDirectories(settings.assetFolder, "*", SearchOption.AllDirectories).Length == 0)
-                {
-                    AssetDatabase.DeleteAsset(settings.assetFolder);
-                }
-            }
-            Utility.ResetGameObject(gameObject, new List<Type>{typeof(Base)});
+            Cleanup();
             
             // avatar descriptor
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
@@ -1435,6 +1427,7 @@ namespace hackebein.objecttracking
         
         public void Cleanup()
         {
+            // Files
             if (Directory.Exists(settings.assetFolder))
             {
                 Utility.RemoveAssets(settings.assetFolder + "/" + settings.uuid);
@@ -1444,12 +1437,22 @@ namespace hackebein.objecttracking
                 }
             }
             
+            // Base GameObject
+            for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
+            {
+                var child = gameObject.transform.GetChild(i);
+                Utility.RemoveGameObject(child.name, gameObject);
+            }
+            Utility.ResetGameObject(gameObject, new List<Type> { typeof(Base) });
+            
+            
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
             if (avatarDescriptor == null)
             {
-                throw new NullReferenceException("Parent GameObject must have a VRC_AvatarDescriptor component");
+                return;
             }
 
+            // Animator Controller
             AnimatorController animatorController = null;
             VRCAvatarDescriptor.CustomAnimLayer[] customAnimLayers = avatarDescriptor.baseAnimationLayers;
             for (int i = 0; i < customAnimLayers.Length; i++)
@@ -1467,30 +1470,30 @@ namespace hackebein.objecttracking
                 Utility.RemoveAnimatorParametersStartingWith("ObjectTracking/", animatorController);
             }
         
+            // Expression Parameters
             var expressionParameters = avatarDescriptor.expressionParameters;
             if (expressionParameters != null)
             {
                 Utility.RemoveExpressionParametersStartingWith("ObjectTracking/", expressionParameters);
             }
         
+            
+            // Expressions Menu
             if (avatarDescriptor.expressionsMenu != null)
             {
                 avatarDescriptor.expressionsMenu.controls.RemoveAll(control => control.name.Contains("Object Tracking"));
                 EditorUtility.SetDirty(avatarDescriptor.expressionsMenu);
             }
         
-            Utility.ResetGameObject(gameObject, new List<Type> { typeof(Base) });
-        
-            for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
-            {
-                var child = gameObject.transform.GetChild(i);
-                Utility.RemoveGameObject(child.name, gameObject);
-            }
-        
+            // Tracker GameObjects
             var trackers = GetTrackers(true);
             foreach (var tracker in trackers)
             {
+                Vector3 position = tracker.gameObject.transform.position;
+                Quaternion rotation = tracker.gameObject.transform.rotation;
                 Utility.ResetGameObject(tracker.gameObject, new List<Type> { typeof(Tracker) });
+                tracker.gameObject.transform.position = position;
+                tracker.gameObject.transform.rotation = rotation;
             }
         }
         
