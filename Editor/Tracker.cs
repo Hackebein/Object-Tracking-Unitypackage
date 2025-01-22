@@ -81,6 +81,14 @@ namespace hackebein.objecttracking
             {
                 gameObject.transform.localScale = new Vector3(1, 1, 1);
             }
+            else
+            {
+                var baseComponent = gameObject.transform.parent.GetComponentInChildren<Base>();
+                if (baseComponent != null)
+                {
+                    gameObject.transform.localScale = baseComponent.GetScaleVector();
+                }
+            }
         }
         
         private void DrawGizmos(Color color, AxeGroup axeGroup, bool local)

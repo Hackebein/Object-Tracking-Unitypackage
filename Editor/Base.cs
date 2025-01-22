@@ -96,7 +96,7 @@ namespace hackebein.objecttracking
             });
         }
 
-        public Vector3 GetScaleVector()
+        public float GetScale()
         {
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
             if (avatarDescriptor == null)
@@ -104,7 +104,12 @@ namespace hackebein.objecttracking
                 throw new NullReferenceException("Parent GameObject must have a VRC_AvatarDescriptor component");
             }
             float scale = (avatarDescriptor.ViewPosition.y / (float)vrchat.PlayerHeights.GetCurrentHeight().CmValue * 100) * magicNumber;
-            scale = 1f;
+            return scale;
+        }
+
+        public Vector3 GetScaleVector()
+        {
+            float scale = GetScale();
             return new Vector3(scale, scale, scale);
         }
         
@@ -342,10 +347,9 @@ namespace hackebein.objecttracking
             // expression parameters
             VRCExpressionParameters expressionParameters = avatarDescriptor.expressionParameters;
             
-            // scale
-            float scale = (avatarDescriptor.ViewPosition.y / (float)vrchat.PlayerHeights.GetCurrentHeight().CmValue * 100) * magicNumber;
+            // offset & scale
             gameObject.transform.localPosition = new Vector3(0, 0, avatarDescriptor.ViewPosition.z);
-            gameObject.transform.localScale = new Vector3(scale, scale, scale);
+            gameObject.transform.localScale = GetScaleVector();
 
             // animation controller
             // Layer Design:
@@ -1146,7 +1150,7 @@ namespace hackebein.objecttracking
             foreach (vrchat.PlayerHeight playerHeight in vrchat.PlayerHeights.List)
             {
                 // Animation State
-                float scale = (avatarDescriptor.ViewPosition.y / (float)vrchat.PlayerHeights.GetCurrentHeight().CmValue * 100) * magicNumber;
+                float scale = GetScale();
                 Dictionary<string[], float[]> props = new Dictionary<string[], float[]>
                 {
                     { new[] { gameObject.name, "Transform.m_LocalScale.x" }, new[] { scale, scale } },
