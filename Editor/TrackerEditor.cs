@@ -41,58 +41,56 @@ namespace hackebein.objecttracking
             // basic checks
             if (tracker.transform.parent == null)
             {
-                EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
+                EditorGUILayout.HelpBox("Parent Object must be Hackebein's Object Tracking Base Component", MessageType.Error);
                 return;
             }
-            var avatar = tracker.transform.parent.GetComponent<VRCAvatarDescriptor>();
-            if (avatar == null)
+            Base baseComponent = tracker.transform.parent.GetComponent<Base>();
+            if (baseComponent == null)
             {
-                EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
-                return;
-            }
-            
-            if (tracker.transform.parent != null)
-            {
-                Base baseComponent = avatar.GetComponentInChildren<Base>();
+                var avatarDescriptor = tracker.transform.parent.GetComponent<VRCAvatarDescriptor>();
+                if (avatarDescriptor == null)
+                {
+                    EditorGUILayout.HelpBox("Parent Object must be Hackebein's Object Tracking Base Component", MessageType.Error);
+                    return;
+                }
+
+                baseComponent = avatarDescriptor.GetComponentInChildren<Base>();
                 if (baseComponent == null)
                 {
-                    var ObjectTrackingGameObject = Utility.FindOrCreateEmptyGameObject("ObjectTracking", avatar.gameObject);
+                    var ObjectTrackingGameObject = Utility.FindOrCreateEmptyGameObject("ObjectTracking", avatarDescriptor.gameObject);
                     baseComponent = ObjectTrackingGameObject.AddComponent<Base>();
+                    tracker.transform.parent = ObjectTrackingGameObject.transform;
+                }
+                else
+                {
+                    tracker.transform.parent = baseComponent.gameObject.transform;                    
+                }
+            }
+
+            using (new GUILayout.HorizontalScope())
+            {
+                GUI.backgroundColor = tracker.tag == "Untagged" ? Color.green : Color.white;
+                if (GUILayout.Button(tracker.tag == "Untagged" ? "Active" : "Enable", halfWidth))
+                {
+                    tracker.tag = tracker.tag == "Untagged" ? "EditorOnly" : "Untagged";
                 }
 
-                using (new GUILayout.HorizontalScope())
-                {
-                    GUILayout.Label("Base Component", halfWidth);
-                    GUI.enabled = false;
-                    EditorGUILayout.ObjectField(baseComponent, typeof(Base), true, halfWidth);
-                    GUI.enabled = true;
-                }
+                GUI.backgroundColor = Color.white; // Reset to default color
 
-                using (new GUILayout.HorizontalScope())
+                if (GUILayout.Button("Remove", halfWidth))
                 {
-                    GUI.backgroundColor = tracker.tag == "Untagged" ? Color.green : Color.white;
-                    if (GUILayout.Button(tracker.tag == "Untagged" ? "Active" : "Enable", halfWidth))
+                    var child = tracker.transform.Find(tracker.settings.identifier);
+                    if (child != null)
                     {
-                        tracker.tag = tracker.tag == "Untagged" ? "EditorOnly" : "Untagged";
+                        DestroyImmediate(child.gameObject);
                     }
-
-                    GUI.backgroundColor = Color.white; // Reset to default color
-
-                    if (GUILayout.Button("Remove", halfWidth))
+                    if (tracker.transform.childCount == 0)
                     {
-                        var child = tracker.transform.Find(tracker.settings.identifier);
-                        if (child != null)
-                        {
-                            DestroyImmediate(child.gameObject);
-                        }
-                        if (tracker.transform.childCount == 0)
-                        {
-                            DestroyImmediate(tracker.gameObject);
-                        }
-                        else
-                        {
-                            Utility.ResetGameObject(tracker.gameObject);
-                        }
+                        DestroyImmediate(tracker.gameObject);
+                    }
+                    else
+                    {
+                        Utility.ResetGameObject(tracker.gameObject);
                     }
                 }
             }

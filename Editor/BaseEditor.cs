@@ -32,10 +32,21 @@ namespace hackebein.objecttracking
                 EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
                 return;
             }
-            if(baseComponent.transform.parent.gameObject.GetComponent<VRC_AvatarDescriptor>() == null)
+            if(baseComponent.transform.parent.GetComponent<VRCAvatarDescriptor>() == null)
             {
                 EditorGUILayout.HelpBox("Parent Object must be Avatar root", MessageType.Error);
                 return;
+            }
+            foreach (Transform child in baseComponent.transform)
+            {
+                if (child.name == "_")
+                {
+                    EditorGUILayout.HelpBox("Child GameObject named \"_\" detected. This name is reserved for internal use.", MessageType.Warning);
+                }
+                else if (child.GetComponent<Tracker>() == null)
+                {
+                    EditorGUILayout.HelpBox("Child GameObject named \"" + child.name + "\" is missing a Tracker component.", MessageType.Error);
+                }
             }
             var avatar = baseComponent.transform.parent.GetComponent<VRCAvatarDescriptor>();
             if (avatar.expressionsMenu != null && avatar.expressionsMenu.controls.Count >= (baseComponent.settings.addDebugMenu ? 7 : 8))

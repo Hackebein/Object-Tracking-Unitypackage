@@ -83,7 +83,7 @@ namespace hackebein.objecttracking
             }
             else
             {
-                var baseComponent = gameObject.transform.parent.GetComponentInChildren<Base>();
+                var baseComponent = gameObject.transform.parent.GetComponent<Base>();
                 if (baseComponent != null)
                 {
                     gameObject.transform.localScale = baseComponent.GetScaleVector();

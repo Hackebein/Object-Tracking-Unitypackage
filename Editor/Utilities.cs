@@ -425,27 +425,48 @@ namespace hackebein.objecttracking
             return clip;
         }
 
-        public static BlendTree CreateDirectBlendTree(string name, Dictionary<string, AnimationClip> motions)
+        public static BlendTree CreateDirectBlendTree(string name, (string variable, AnimationClip clip, bool scale)[] motions)
         {
-            BlendTree blendTree = new BlendTree
+            BlendTree baseBlendTree = new BlendTree
             {
                 name = name,
                 blendType = BlendTreeType.Direct
             };
-
-            foreach (KeyValuePair<string, AnimationClip> pair in motions)
+            
+            BlendTree scaledBlendTree = new BlendTree
             {
-                ChildMotion motion = new ChildMotion
+                name = "Scaled",
+                blendType = BlendTreeType.Direct
+            };
+
+            foreach (var motion in motions)
+            {
+                ChildMotion childMotion = new ChildMotion
                 {
-                    motion = pair.Value,
+                    motion = motion.clip,
                     threshold = 0f,
-                    directBlendParameter = pair.Key,
+                    directBlendParameter = motion.variable,
                     timeScale = 1f
                 };
-                blendTree.children = blendTree.children.Append(motion).ToArray();
+                if (motion.scale)
+                {
+                    scaledBlendTree.children = scaledBlendTree.children.Append(childMotion).ToArray();
+                }
+                else
+                {
+                    baseBlendTree.children = baseBlendTree.children.Append(childMotion).ToArray();
+                }
             }
-
-            return blendTree;
+            
+            baseBlendTree.children = baseBlendTree.children.Append(new ChildMotion
+            {
+                motion = scaledBlendTree,
+                threshold = 1f,
+                directBlendParameter = "ObjectTracking/scale",
+                timeScale = 1f
+            }).ToArray();
+            
+            return baseBlendTree;
         }
 
         public static void ResetGameObject(GameObject gameObject, List<Type> ignoredComponentTypes = null)

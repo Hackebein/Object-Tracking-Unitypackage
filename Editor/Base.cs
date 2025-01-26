@@ -64,7 +64,7 @@ namespace hackebein.objecttracking
 #if VRC_SDK_VRCSDK3 && UNITY_EDITOR
         public Tracker[] GetTrackers(bool all = false)
         {
-            return gameObject.transform.parent.GetComponentsInChildren<Tracker>().Where(tracker => all || (tracker.tag != "EditorOnly" && tracker.settings.identifier != "")).ToArray();
+            return gameObject.GetComponentsInChildren<Tracker>().Where(tracker => all || (tracker.tag != "EditorOnly" && tracker.settings.identifier != "")).ToArray();
         }
         
         void OnRenderObject()
@@ -119,7 +119,7 @@ namespace hackebein.objecttracking
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
             if (avatarDescriptor == null)
             {
-                throw new NullReferenceException("Parent GameObject must have a VRC_AvatarDescriptor component");
+                throw new NullReferenceException("Parent GameObject must have a VRCAvatarDescriptor component");
             }
             
             // scale
@@ -135,7 +135,7 @@ namespace hackebein.objecttracking
                     return;
                 }
                 // tracker object
-                GameObject trackerObject = Utility.FindOrCreateEmptyGameObject(device.identifier, gameObject.transform.parent.gameObject, new List<Type> { typeof(Tracker) });
+                GameObject trackerObject = Utility.FindOrCreateEmptyGameObject(device.identifier, gameObject, new List<Type> { typeof(Tracker) });
                 Tracker trackerComponent = trackerObject.AddComponent<Tracker>();
                 trackerComponent.settings.identifier = device.identifier;
 
@@ -319,7 +319,7 @@ namespace hackebein.objecttracking
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
             if (avatarDescriptor == null)
             {
-                throw new NullReferenceException("Parent GameObject must have a VRC_AvatarDescriptor component");
+                throw new NullReferenceException("Parent GameObject must have a VRCAvatarDescriptor component");
             }
             avatarDescriptor.customizeAnimationLayers = true;
             avatarDescriptor.customExpressions = true;
@@ -341,7 +341,6 @@ namespace hackebein.objecttracking
             
             // offset & scale
             gameObject.transform.localPosition = new Vector3(0, 0, avatarDescriptor.ViewPosition.z);
-            gameObject.transform.localScale = GetScaleVector();
 
             // animation controller
             // Layer Design:
@@ -395,6 +394,10 @@ namespace hackebein.objecttracking
             // Add Menu Items
             expressionMenu = CreateExpressionMenu(expressionMenu);
             
+            // proxy
+            GameObject proxy = Utility.FindOrCreateEmptyGameObject("_", gameObject);
+            proxy.tag = "Untagged";
+            
             // Tracker Components
             foreach (var tracker in GetTrackers()) 
             {
@@ -407,12 +410,11 @@ namespace hackebein.objecttracking
                 (animatorController, expressionParameters) = CreateTransitionLayer(animatorController, expressionParameters, tracker, tracker.settings.axes.Rotation.Z, "RZ", "VRCParentConstraint.Sources.source0.ParentRotationOffset.z");
                 Utility.MarkDirty(expressionParameters);
                 
-                GameObject trackerPositionRaw = Utility.FindOrCreateEmptyGameObject(tracker.settings.identifier, gameObject);
+                GameObject trackerPositionRaw = Utility.FindOrCreateEmptyGameObject(tracker.settings.identifier, proxy);
                 trackerPositionRaw.tag = "Untagged";
                 
                 VRCParentConstraint trackerPositionContraint = trackerPositionRaw.AddComponent<VRCParentConstraint>();
                 trackerPositionContraint.IsActive = true;
-                trackerPositionContraint.SolveInLocalSpace = true;
                 trackerPositionContraint.Locked = true;
                 trackerPositionContraint.Sources.Add(new VRCConstraintSource(gameObject.transform, 1, Vector3.zero, Vector3.zero));
 
@@ -437,7 +439,7 @@ namespace hackebein.objecttracking
         {
             if (settings.addMenu)
             {
-                var expressionSubMenu = vrchat.ExpressionMenu.CreateMenu();
+                var expressionSubMenu = vrchat.ExpressionMenu.CreateMenu(settings.assetFolder + "/" + settings.uuid);
                 expressionSubMenu.controls.Add(new VRCExpressionsMenu.Control()
                 {
                     name = "Stabalize Objects",
@@ -452,7 +454,7 @@ namespace hackebein.objecttracking
 
                 foreach (var tracker in GetTrackers())
                 {
-                    expressionSubMenu = vrchat.ExpressionMenu.CreateIfNeededMoreMenu(expressionSubMenu);
+                    expressionSubMenu = vrchat.ExpressionMenu.CreateIfNeededMoreMenu(expressionSubMenu, settings.assetFolder + "/" + settings.uuid);
                     expressionSubMenu.controls.Add(new VRCExpressionsMenu.Control()
                     {
                         name = tracker.name,
@@ -475,7 +477,7 @@ namespace hackebein.objecttracking
 
             if (settings.addDebugMenu)
             {
-                var expressionDebugSubMenu = vrchat.ExpressionMenu.CreateMenu();
+                var expressionDebugSubMenu = vrchat.ExpressionMenu.CreateMenu(settings.assetFolder + "/" + settings.uuid);
                 expressionDebugSubMenu.controls.Add(new VRCExpressionsMenu.Control()
                 {
                     name = "go Stabilized",
@@ -534,7 +536,7 @@ namespace hackebein.objecttracking
 
                 foreach (var tracker in GetTrackers())
                 {
-                    var expressionDebugSubMenuTracker = vrchat.ExpressionMenu.CreateMenu();
+                    var expressionDebugSubMenuTracker = vrchat.ExpressionMenu.CreateMenu(settings.assetFolder + "/" + settings.uuid);
                     expressionDebugSubMenuTracker.controls.Add(new VRCExpressionsMenu.Control()
                     {
                         name = "Disable",
@@ -635,7 +637,7 @@ namespace hackebein.objecttracking
                         },
                         value = 1
                     });
-                    expressionDebugSubMenu = vrchat.ExpressionMenu.CreateIfNeededMoreMenu(expressionDebugSubMenu);
+                    expressionDebugSubMenu = vrchat.ExpressionMenu.CreateIfNeededMoreMenu(expressionDebugSubMenu, settings.assetFolder + "/" + settings.uuid);
                     expressionDebugSubMenu.controls.Add(new VRCExpressionsMenu.Control()
                     {
                         name = tracker.name != tracker.settings.identifier ? tracker.name + "<br>" + tracker.settings.identifier + "" : tracker.settings.identifier,
@@ -725,9 +727,9 @@ namespace hackebein.objecttracking
 
             // Clip
             stateLocal.motion =
-                Utility.CreateClip(tracker.settings.identifier + "/L" + name, gameObject.name + "/" + tracker.settings.identifier, property, axe.Local.ValueMin, axe.Local.ValueMax, settings.assetFolder + "/" + settings.uuid + "/Tracker");
+                Utility.CreateClip(tracker.settings.identifier + "/L" + name, gameObject.name + "/_/" + tracker.settings.identifier, property, axe.Local.ValueMin, axe.Local.ValueMax, settings.assetFolder + "/" + settings.uuid + "/Tracker");
             stateRemote.motion =
-                Utility.CreateClip(tracker.settings.identifier + "/R" + name, gameObject.name + "/" + tracker.settings.identifier, property, axe.Remote.ValueMin, axe.Remote.ValueMax, settings.assetFolder + "/" + settings.uuid + "/Tracker");
+                Utility.CreateClip(tracker.settings.identifier + "/R" + name, gameObject.name + "/_/" + tracker.settings.identifier, property, axe.Remote.ValueMin, axe.Remote.ValueMax, settings.assetFolder + "/" + settings.uuid + "/Tracker");
 
             Utility.AddSubAssetsToDatabase(layer, animatorController);
             return (animatorController, expressionParameters);
@@ -887,9 +889,9 @@ namespace hackebein.objecttracking
 
             // Clip
             stateShow.motion =
-                Utility.CreateClip(tracker.settings.identifier + "/ShowInsideLimits", tracker.name, "GameObject.m_IsActive", 1, 1, settings.assetFolder + "/" + settings.uuid + "/Tracker");
+                Utility.CreateClip(tracker.settings.identifier + "/ShowInsideLimits", gameObject.name + "/" + tracker.name, "GameObject.m_IsActive", 1, 1, settings.assetFolder + "/" + settings.uuid + "/Tracker");
             stateHide.motion =
-                Utility.CreateClip(tracker.settings.identifier + "/HideBeyondLimits", tracker.name, "GameObject.m_IsActive", 0, 0, settings.assetFolder + "/" + settings.uuid + "/Tracker");
+                Utility.CreateClip(tracker.settings.identifier + "/HideBeyondLimits", gameObject.name + "/" + tracker.name, "GameObject.m_IsActive", 0, 0, settings.assetFolder + "/" + settings.uuid + "/Tracker");
 
             Utility.AddSubAssetsToDatabase(layer, animatorController);
             return (animatorController, expressionParameters);
@@ -1013,8 +1015,8 @@ namespace hackebein.objecttracking
                 writeDefaultValues = true
             };
             
-            List<VRCAvatarParameterDriver.Parameter> parameterDriverParametersRemote = new List<VRCAvatarParameterDriver.Parameter>{};
-            Dictionary<string, AnimationClip> motionsRemote = new Dictionary<string, AnimationClip>();
+            var parameterDriverParametersRemote = new List<VRCAvatarParameterDriver.Parameter>{};
+            var motionsRemote = new (string variable, AnimationClip clip, bool scale)[0];
             foreach (Tracker tracker in GetTrackers())
             {
                 (AxeTarget target, string name)[] axeTargetsLocal = new[]
@@ -1032,16 +1034,16 @@ namespace hackebein.objecttracking
                     expressionParameters = Utility.CreateFloatParameterAndAddToExpressionParameters(expressionParameters, "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name, 0f, false, false);
                 }
                 
-                (AxeTarget target, string name)[] axeTargetsRemote = new[]
+                (AxeTarget target, string name, bool scale)[] axeTargetsRemote = new[]
                 {
-                    (tracker.settings.axes.Position.X.Remote, "RPX"),
-                    (tracker.settings.axes.Position.Y.Remote, "RPY"),
-                    (tracker.settings.axes.Position.Z.Remote, "RPZ"),
-                    (tracker.settings.axes.Rotation.X.Remote, "RRX"),
-                    (tracker.settings.axes.Rotation.Y.Remote, "RRY"),
-                    (tracker.settings.axes.Rotation.Z.Remote, "RRZ"),
+                    (tracker.settings.axes.Position.X.Remote, "RPX", true),
+                    (tracker.settings.axes.Position.Y.Remote, "RPY", true),
+                    (tracker.settings.axes.Position.Z.Remote, "RPZ", true),
+                    (tracker.settings.axes.Rotation.X.Remote, "RRX", false),
+                    (tracker.settings.axes.Rotation.Y.Remote, "RRY", false),
+                    (tracker.settings.axes.Rotation.Z.Remote, "RRZ", false),
                 };
-                foreach ((AxeTarget target, string name) axe in axeTargetsRemote)
+                foreach ((AxeTarget target, string name, bool scale) axe in axeTargetsRemote)
                 {
                     int accuracy = axe.target.Bits;
                     int accuracyBytes = accuracy / 8;
@@ -1056,8 +1058,7 @@ namespace hackebein.objecttracking
                         parameterDriverParametersRemote.Add(Utility.ParameterDriverParameterIntToFloat(
                             "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i,
                             "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i + "-Float"));
-                        motionsRemote.Add("ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i + "-Float",
-                            Utility.CreateClip(tracker.settings.identifier + "/" + axe.name + "-Byte" + i, "", "Animator.ObjectTracking/" + tracker.settings.identifier + "/" + axe.name, multiplicator, multiplicator, settings.assetFolder + "/" + settings.uuid + "/Tracker"));
+                        motionsRemote = motionsRemote.Append(("ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Byte" + i + "-Float", Utility.CreateClip(tracker.settings.identifier + "/" + axe.name + "-Byte" + i, "", "Animator.ObjectTracking/" + tracker.settings.identifier + "/" + axe.name, multiplicator, multiplicator, settings.assetFolder + "/" + settings.uuid + "/Tracker"), axe.scale)).ToArray();
                     }
                     for (int i = 0; i < accuracyBits; i++)
                     {
@@ -1068,8 +1069,7 @@ namespace hackebein.objecttracking
                         parameterDriverParametersRemote.Add(Utility.ParameterDriverParameterBoolToFloat(
                             "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i,
                             "ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i + "-Float"));
-                        motionsRemote.Add("ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i + "-Float",
-                            Utility.CreateClip(tracker.settings.identifier + "/" + axe.name + "-Bit" + i, "", "Animator.ObjectTracking/" + tracker.settings.identifier + "/" + axe.name, multiplicator, multiplicator, settings.assetFolder + "/" + settings.uuid + "/Tracker"));
+                        motionsRemote = motionsRemote.Append(("ObjectTracking/" + tracker.settings.identifier + "/" + axe.name + "-Bit" + i + "-Float", Utility.CreateClip(tracker.settings.identifier + "/" + axe.name + "-Bit" + i, "", "Animator.ObjectTracking/" + tracker.settings.identifier + "/" + axe.name, multiplicator, multiplicator, settings.assetFolder + "/" + settings.uuid + "/Tracker"), axe.scale)).ToArray();
                     }
                 }                
             }
@@ -1143,17 +1143,12 @@ namespace hackebein.objecttracking
             {
                 // Animation State
                 float scale = GetScale();
-                Dictionary<string[], float[]> props = new Dictionary<string[], float[]>
-                {
-                    { new[] { gameObject.name, "Transform.m_LocalScale.x" }, new[] { scale, scale } },
-                    { new[] { gameObject.name, "Transform.m_LocalScale.y" }, new[] { scale, scale } },
-                    { new[] { gameObject.name, "Transform.m_LocalScale.z" }, new[] { scale, scale } },
-                };
+                var props = new Dictionary<string[], float[]> {};
                 foreach (var tracker in GetTrackers())
                 {
-                    props.Add(new[] { tracker.name, "Transform.m_LocalScale.x" }, new[] { scale, scale });
-                    props.Add(new[] { tracker.name, "Transform.m_LocalScale.y" }, new[] { scale, scale });
-                    props.Add(new[] { tracker.name, "Transform.m_LocalScale.z" }, new[] { scale, scale });
+                    props.Add(new[] { gameObject.name + "/" + tracker.name, "Transform.m_LocalScale.x" }, new[] { scale, scale });
+                    props.Add(new[] { gameObject.name + "/" + tracker.name, "Transform.m_LocalScale.y" }, new[] { scale, scale });
+                    props.Add(new[] { gameObject.name + "/" + tracker.name, "Transform.m_LocalScale.z" }, new[] { scale, scale });
                 }
                 
                 AnimatorState state = new AnimatorState
@@ -1438,13 +1433,14 @@ namespace hackebein.objecttracking
             }
             
             // Base GameObject
-            for (int i = gameObject.transform.childCount - 1; i >= 0; i--)
-            {
-                var child = gameObject.transform.GetChild(i);
-                Utility.RemoveGameObject(child.name, gameObject);
-            }
             Utility.ResetGameObject(gameObject, new List<Type> { typeof(Base) });
-            
+            foreach (Transform child in gameObject.transform)
+            {
+                if (child.GetComponent<Tracker>() == null)
+                {
+                    GameObject.DestroyImmediate(child.gameObject);
+                }
+            }
             
             var avatarDescriptor = gameObject.transform.parent.GetComponent<VRCAvatarDescriptor>();
             if (avatarDescriptor == null)

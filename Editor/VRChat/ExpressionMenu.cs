@@ -11,14 +11,7 @@ namespace hackebein.objecttracking.vrchat
 {
     public static class ExpressionMenu
     {
-        public static void CreateAsset(Object objectToSave)
-        {
-            var path = "Assets/Hackebein/Generated/" + objectToSave.GetInstanceID() + ".asset";
-            Utility.CreatePathRecursive(System.IO.Path.GetDirectoryName(path));
-            AssetDatabase.CreateAsset(objectToSave, path);
-        }
-
-        public static VRCExpressionsMenu CreateMenu()
+        public static VRCExpressionsMenu CreateMenu(string path)
         {
             var menu = ScriptableObject.CreateInstance<VRCExpressionsMenu>();
             if (menu.controls == null)
@@ -27,13 +20,14 @@ namespace hackebein.objecttracking.vrchat
             }
 
             EditorUtility.SetDirty(menu);
-            CreateAsset(menu);
+            Utility.CreatePathRecursive(System.IO.Path.GetDirectoryName(path));
+            AssetDatabase.CreateAsset(menu, path + "/" + menu.GetHashCode() + ".asset");
             return menu;
         }
 
-        public static VRCExpressionsMenu CreateSubMenu(VRCExpressionsMenu expressionsMenu, string name, Texture2D icon = null)
+        public static VRCExpressionsMenu CreateSubMenu(VRCExpressionsMenu expressionsMenu, string name, string path, Texture2D icon = null)
         {
-            var newMenu = CreateMenu();
+            var newMenu = CreateMenu(path);
             expressionsMenu.controls.Add(new VRCExpressionsMenu.Control()
             {
                 name = name,
@@ -45,7 +39,7 @@ namespace hackebein.objecttracking.vrchat
             return newMenu;
         }
 
-        public static VRCExpressionsMenu CreateIfNeededMoreMenu(VRCExpressionsMenu expressionsMenu)
+        public static VRCExpressionsMenu CreateIfNeededMoreMenu(VRCExpressionsMenu expressionsMenu, string path)
         {
             if (expressionsMenu.controls.Count >= 8)
             {
@@ -55,7 +49,7 @@ namespace hackebein.objecttracking.vrchat
 
             if (expressionsMenu.controls.Count == 7)
             {
-                return CreateSubMenu(expressionsMenu, "More ...");
+                return CreateSubMenu(expressionsMenu, "More ...", path);
             }
 
             return expressionsMenu;
