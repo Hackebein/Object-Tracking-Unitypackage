@@ -422,13 +422,13 @@ namespace hackebein.objecttracking
                 trackerPositionDampingConstraint.IsActive = true;
                 trackerPositionDampingConstraint.Locked = true;
                 trackerPositionDampingConstraint.Sources.Add(new VRCConstraintSource(tracker.transform, 1, Vector3.zero, Vector3.zero));
-                trackerPositionDampingConstraint.Sources.Add(new VRCConstraintSource(trackerPositionRaw.transform, tracker.settings.PositionDamping, Vector3.zero, Vector3.zero));
+                trackerPositionDampingConstraint.Sources.Add(new VRCConstraintSource(trackerPositionRaw.transform, tracker.settings.PositionDampingLocal, Vector3.zero, Vector3.zero));
                 
                 VRCRotationConstraint trackerRotationDampingConstraint = tracker.gameObject.AddComponent<VRCRotationConstraint>();
                 trackerRotationDampingConstraint.IsActive = true;
                 trackerRotationDampingConstraint.Locked = true;
                 trackerRotationDampingConstraint.Sources.Add(new VRCConstraintSource(tracker.transform, 1, Vector3.zero, Vector3.zero));
-                trackerRotationDampingConstraint.Sources.Add(new VRCConstraintSource(trackerPositionRaw.transform, tracker.settings.RotationDamping, Vector3.zero, Vector3.zero));
+                trackerRotationDampingConstraint.Sources.Add(new VRCConstraintSource(trackerPositionRaw.transform, tracker.settings.RotationDampingLocal, Vector3.zero, Vector3.zero));
             }
             AssetDatabase.SaveAssets();
             stopwatch.Stop();

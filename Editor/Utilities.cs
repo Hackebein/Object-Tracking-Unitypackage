@@ -462,7 +462,7 @@ namespace hackebein.objecttracking
             {
                 motion = scaledBlendTree,
                 threshold = 1f,
-                directBlendParameter = "ObjectTracking/scale",
+                directBlendParameter = "ObjectTracking/Scale",
                 timeScale = 1f
             }).ToArray();
             

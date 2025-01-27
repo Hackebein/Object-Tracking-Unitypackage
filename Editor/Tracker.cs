@@ -31,8 +31,10 @@ namespace hackebein.objecttracking
         {
             public string identifier;
             public Axes axes = new Axes();
-            public float PositionDamping = 0.05f;
-            public float RotationDamping = 0.03f;
+            public float PositionDampingLocal = 0.05f;
+            public float PositionDampingRemote = 0.05f;
+            public float RotationDampingLocal = 0.03f;
+            public float RotationDampingRemote = 0.03f;
             public bool hideBeyondLimits = true;
         }
         public Settings settings = new Settings();

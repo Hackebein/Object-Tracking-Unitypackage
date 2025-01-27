@@ -37,6 +37,7 @@ namespace hackebein.objecttracking
         {
             var tracker = (Tracker)target;
             var halfWidth = utility.UnityHelper.RelativeWidth((float)1/2, false);
+            var quarterWidth = utility.UnityHelper.RelativeWidth((float)1/4, false);
             
             // basic checks
             if (tracker.transform.parent == null)
@@ -161,15 +162,17 @@ namespace hackebein.objecttracking
             using (new GUILayout.HorizontalScope())
             {
                 // TODO: info 0.00 (0%) - 1.00 (100%)
-                GUILayout.Label("Position Damping", halfWidth);
-                tracker.settings.PositionDamping = utility.Input.RangeNumberField(tracker.settings.PositionDamping, 0f, 1f, halfWidth);
+                GUILayout.Label("Position Damping (local/remote) | 0.00 (0%) - 1.00 (100%)", halfWidth);
+                tracker.settings.PositionDampingLocal = utility.Input.RangeNumberField(tracker.settings.PositionDampingLocal, 0f, 1f, quarterWidth);
+                //tracker.settings.PositionDampingRemote = utility.Input.RangeNumberField(tracker.settings.PositionDampingRemote, 0f, 1f, quarterWidth);
             }
 
             using (new GUILayout.HorizontalScope())
             {
                 // TODO: info 0.00 (0%) - 1.00 (100%)
-                GUILayout.Label("Rotation Damping", halfWidth);
-                tracker.settings.RotationDamping = utility.Input.RangeNumberField(tracker.settings.RotationDamping, 0f, 1f, halfWidth);
+                GUILayout.Label("Rotation Damping (local/remote) | 0.00 (0%) - 1.00 (100%)", halfWidth);
+                tracker.settings.RotationDampingLocal = utility.Input.RangeNumberField(tracker.settings.RotationDampingLocal, 0f, 1f, quarterWidth);
+                //tracker.settings.RotationDampingRemote = utility.Input.RangeNumberField(tracker.settings.RotationDampingRemote, 0f, 1f, quarterWidth);
             }
                 
             using (new GUILayout.HorizontalScope())
@@ -178,8 +181,8 @@ namespace hackebein.objecttracking
                 tracker.settings.hideBeyondLimits = EditorGUILayout.Toggle(tracker.settings.hideBeyondLimits, halfWidth);
             }
             
-            InspectorGuiAxeGroup(tracker.settings.axes.Position, "Position", 1f);
-            InspectorGuiAxeGroup(tracker.settings.axes.Rotation, "Rotation", 1f);
+            InspectorGuiAxeGroup(tracker.settings.axes.Position, "Position", 1f, "m");
+            InspectorGuiAxeGroup(tracker.settings.axes.Rotation, "Rotation", 1f, "°");
 
             if (tracker.showDebugView)
             {
@@ -200,29 +203,28 @@ namespace hackebein.objecttracking
             }
         }
 
-        private void InspectorGuiAxeGroup(AxeGroup axeGroup, string name, float baseWith)
+        private void InspectorGuiAxeGroup(AxeGroup axeGroup, string name, float baseWith, string suffix)
         {
             var tracker = (Tracker)target;
-            var witdth = (float)(baseWith / (tracker.showDebugView ? 5 : 3));
+            var witdth = (float)(baseWith / 7);
             var options = utility.UnityHelper.RelativeWidth(witdth, false);
             GUILayout.Label(name);
             using (new GUILayout.HorizontalScope())
             {
                 GUILayout.Label("Bits", options);
-                if (tracker.showDebugView)
-                {
-                    GUILayout.Label("Min Local", options);
-                    GUILayout.Label("Max Local", options);
-                }
-                GUILayout.Label("Min Remote", options);
-                GUILayout.Label("Max Remote", options);
+                GUILayout.Label("<color=yellow>Min Local</color>", new GUIStyle() { richText = true }, options);
+                GUILayout.Label("<color=yellow>Max Local</color>", new GUIStyle() { richText = true }, options);
+                GUILayout.Label("<color=yellow>Accuracy Local</color>", new GUIStyle() { richText = true }, options);
+                GUILayout.Label("<color=red>Min Remote</color>", new GUIStyle() { richText = true }, options);
+                GUILayout.Label("<color=red>Max Remote</color>", new GUIStyle() { richText = true }, options);
+                GUILayout.Label("<color=red>Accuracy Remote</color>", new GUIStyle() { richText = true }, options);
             }
-            InspectorGuiAxe(axeGroup.X, "X", witdth);
-            InspectorGuiAxe(axeGroup.Y, "Y", witdth);
-            InspectorGuiAxe(axeGroup.Z, "Z", witdth);
+            InspectorGuiAxe(axeGroup.X, "X", witdth, suffix);
+            InspectorGuiAxe(axeGroup.Y, "Y", witdth, suffix);
+            InspectorGuiAxe(axeGroup.Z, "Z", witdth, suffix);
         }
         
-        private void InspectorGuiAxe(Axe axe, string name, float baseWith)
+        private void InspectorGuiAxe(Axe axe, string name, float baseWith, string suffix)
         {
             var tracker = (Tracker)target;
             var witdth = (float)(baseWith);
@@ -231,13 +233,12 @@ namespace hackebein.objecttracking
             {
                 //GUILayout.Label(name);
                 axe.Remote.Bits = utility.Input.RangeNumberField(axe.Remote.Bits, axe.Remote.BitsLimitMin, axe.Remote.BitsLimitMax, options);
-                if (tracker.showDebugView)
-                {
-                    axe.Local.ValueMin = utility.Input.RangeNumberField(axe.Local.ValueMin, axe.Local.ValueLimitMin, axe.Local.ValueLimitMax, options);
-                    axe.Local.ValueMax = utility.Input.RangeNumberField(axe.Local.ValueMax, axe.Local.ValueLimitMin, axe.Local.ValueLimitMax, options);
-                }
+                axe.Local.ValueMin = utility.Input.RangeNumberField(axe.Local.ValueMin, axe.Local.ValueLimitMin, axe.Local.ValueLimitMax, options);
+                axe.Local.ValueMax = utility.Input.RangeNumberField(axe.Local.ValueMax, axe.Local.ValueLimitMin, axe.Local.ValueLimitMax, options);
+                utility.UnityHelper.LabelAccuracy(axe.Local.ValueMax - axe.Local.ValueMin, axe.Local.Bits, suffix, options);
                 axe.Remote.ValueMin = utility.Input.RangeNumberField(axe.Remote.ValueMin, axe.Remote.ValueLimitMin, axe.Remote.ValueLimitMax, options);
                 axe.Remote.ValueMax = utility.Input.RangeNumberField(axe.Remote.ValueMax, axe.Remote.ValueLimitMin, axe.Remote.ValueLimitMax, options);
+                utility.UnityHelper.LabelAccuracy(axe.Remote.ValueMax - axe.Remote.ValueMin, axe.Remote.Bits, suffix, options);
             }
         }
     }

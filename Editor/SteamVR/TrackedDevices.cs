@@ -164,8 +164,9 @@ namespace hackebein.objecttracking.steamvr
                 Matrix4x4 trackingRef = ComputeTrackingReferencePosition(trackingRefsRaw);
         
                 // dynamic Playspace
-                //trackingObjsRaw["Playspace"] = SetYAndXZRotationToZero(trackingRef);
-                //metaData["Playspace"] = ("SteamVRPlayArea", "Playspace", "Hackebein", "openvr");
+                // TODO: check if this is correct or if z is flipped
+                trackingObjsRaw["PlaySpace"] = SetYAndXZRotationToZero(trackingRef);
+                metaData["PlaySpace"] = ("SteamVRPlayArea", "Playspace", "Hackebein", "openvr");
                 
                 // zero out Y+rotation
                 trackingRef = SetYAndRotationToZero(trackingRef);

@@ -49,11 +49,11 @@ namespace hackebein.objecttracking.utility
 		    return new[] { GUILayout.Width((EditorGUIUtility.currentViewWidth - 22f + taken) * width + offset) };
 	    }
 
-	    public static void LabelAccuracy(int range, int bits, string suffix, GUILayoutOption[] guiLayoutOption)
+	    public static void LabelAccuracy(float range, int bits, string suffix, GUILayoutOption[] guiLayoutOption)
 	    {
 		    using (new GUILayout.VerticalScope())
 		    {
-			    float accuracy = (float)range / (1L << bits);
+			    float accuracy = range / (1L << bits);
 			    if (suffix == "m" && accuracy < 0.001)
 			    {
 				    GUILayout.Label("<0.001" + suffix, guiLayoutOption);
