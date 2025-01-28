@@ -37,6 +37,8 @@ namespace hackebein.objecttracking
             public string assetFolder = "Assets/Hackebein/ObjectTracking/Generated";
             //TODO: generate new id on duplication
             public string uuid = Guid.NewGuid().ToString();
+            public float predictionLocal = 0.1f;
+            public float predictionRemote = 0.1f;
             public bool addLazyStabilization = true;
             public bool addStabilization = true;
             public bool addMenu = true;

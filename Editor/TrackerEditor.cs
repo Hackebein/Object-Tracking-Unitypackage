@@ -206,15 +206,16 @@ namespace hackebein.objecttracking
         private void InspectorGuiAxeGroup(AxeGroup axeGroup, string name, float baseWith, string suffix)
         {
             var tracker = (Tracker)target;
-            var witdth = (float)(baseWith / 7);
+            var witdth = (float)(baseWith / 8);
             var options = utility.UnityHelper.RelativeWidth(witdth, false);
             GUILayout.Label(name);
             using (new GUILayout.HorizontalScope())
             {
-                GUILayout.Label("Bits", options);
+                GUILayout.Label("", options);
                 GUILayout.Label("<color=yellow>Min Local</color>", new GUIStyle() { richText = true }, options);
                 GUILayout.Label("<color=yellow>Max Local</color>", new GUIStyle() { richText = true }, options);
                 GUILayout.Label("<color=yellow>Accuracy Local</color>", new GUIStyle() { richText = true }, options);
+                GUILayout.Label("Bits", options);
                 GUILayout.Label("<color=red>Min Remote</color>", new GUIStyle() { richText = true }, options);
                 GUILayout.Label("<color=red>Max Remote</color>", new GUIStyle() { richText = true }, options);
                 GUILayout.Label("<color=red>Accuracy Remote</color>", new GUIStyle() { richText = true }, options);
@@ -227,15 +228,14 @@ namespace hackebein.objecttracking
         private void InspectorGuiAxe(Axe axe, string name, float baseWith, string suffix)
         {
             var tracker = (Tracker)target;
-            var witdth = (float)(baseWith);
-            var options = utility.UnityHelper.RelativeWidth(witdth, false);
+            var options = utility.UnityHelper.RelativeWidth(baseWith, false);
             using (new GUILayout.HorizontalScope())
             {
-                //GUILayout.Label(name);
-                axe.Remote.Bits = utility.Input.RangeNumberField(axe.Remote.Bits, axe.Remote.BitsLimitMin, axe.Remote.BitsLimitMax, options);
+                GUILayout.Label(name, options);
                 axe.Local.ValueMin = utility.Input.RangeNumberField(axe.Local.ValueMin, axe.Local.ValueLimitMin, axe.Local.ValueLimitMax, options);
                 axe.Local.ValueMax = utility.Input.RangeNumberField(axe.Local.ValueMax, axe.Local.ValueLimitMin, axe.Local.ValueLimitMax, options);
                 utility.UnityHelper.LabelAccuracy(axe.Local.ValueMax - axe.Local.ValueMin, axe.Local.Bits, suffix, options);
+                axe.Remote.Bits = utility.Input.RangeNumberField(axe.Remote.Bits, axe.Remote.BitsLimitMin, axe.Remote.BitsLimitMax, options);
                 axe.Remote.ValueMin = utility.Input.RangeNumberField(axe.Remote.ValueMin, axe.Remote.ValueLimitMin, axe.Remote.ValueLimitMax, options);
                 axe.Remote.ValueMax = utility.Input.RangeNumberField(axe.Remote.ValueMax, axe.Remote.ValueLimitMin, axe.Remote.ValueLimitMax, options);
                 utility.UnityHelper.LabelAccuracy(axe.Remote.ValueMax - axe.Remote.ValueMin, axe.Remote.Bits, suffix, options);

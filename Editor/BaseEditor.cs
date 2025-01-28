@@ -21,7 +21,7 @@ namespace hackebein.objecttracking
             Base baseComponent = (Base)target;
             var fullWidth = utility.UnityHelper.RelativeWidth(1, false);
             var halfWidth = utility.UnityHelper.RelativeWidth((float)1 / 2, false);
-            var quadWidth = utility.UnityHelper.RelativeWidth((float)1 / 4, false);
+            var quarterWidth = utility.UnityHelper.RelativeWidth((float)1 / 4, false);
             var width4of6 = utility.UnityHelper.RelativeWidth((float)4 / 6, false);
             var width2of6 = utility.UnityHelper.RelativeWidth((float)2 / 6, false);
             var width1of6 = utility.UnityHelper.RelativeWidth((float)1 / 6, false);
@@ -168,7 +168,7 @@ namespace hackebein.objecttracking
                             {
                                 GUI.enabled = false;
                             }
-                            if (GUILayout.Button("Update Once", quadWidth))
+                            if (GUILayout.Button("Update Once", quarterWidth))
                             {
                                 tracker.updateContinuously = false;
                             }
@@ -178,7 +178,7 @@ namespace hackebein.objecttracking
                                 GUI.enabled = false;
                             }
                             GUI.backgroundColor = tracker.updateContinuously == true ? Color.green : Color.white;
-                            if (GUILayout.Button("Update Continuously", quadWidth))
+                            if (GUILayout.Button("Update Continuously", quarterWidth))
                             {
                                 tracker.updateContinuously = (tracker.updateContinuously == true) ? null : true;
                             }
@@ -225,8 +225,7 @@ namespace hackebein.objecttracking
                     using (new GUILayout.HorizontalScope())
                     {
                         GUILayout.Label("Player Height", halfWidth);
-                        EditorGUILayout.Popup(vrchat.PlayerHeights.GetCurrentHeight().Index,
-                            vrchat.PlayerHeights.List.Select(p => p.DisplayText).ToArray(), halfWidth);
+                        EditorGUILayout.Popup(vrchat.PlayerHeights.GetCurrentHeight().Index, vrchat.PlayerHeights.List.Select(p => p.DisplayText).ToArray(), halfWidth);
                     }
 
                     using (new GUILayout.HorizontalScope())
@@ -239,8 +238,14 @@ namespace hackebein.objecttracking
                     using (new GUILayout.HorizontalScope())
                     {
                         GUILayout.Label("Add Lazy Stabilization", halfWidth);
-                        baseComponent.settings.addLazyStabilization =
-                            EditorGUILayout.Toggle(baseComponent.settings.addLazyStabilization, halfWidth);
+                        baseComponent.settings.addLazyStabilization = EditorGUILayout.Toggle(baseComponent.settings.addLazyStabilization, halfWidth);
+                    }
+                    
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        GUILayout.Label("Prediction (local/remote)", halfWidth);
+                        baseComponent.settings.predictionLocal = EditorGUILayout.FloatField(baseComponent.settings.predictionLocal, quarterWidth);
+                        baseComponent.settings.predictionRemote = EditorGUILayout.FloatField(baseComponent.settings.predictionRemote, halfWidth);
                     }
 
                     using (new GUILayout.HorizontalScope())

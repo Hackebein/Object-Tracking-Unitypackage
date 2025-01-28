@@ -164,9 +164,16 @@ namespace hackebein.objecttracking.steamvr
                 Matrix4x4 trackingRef = ComputeTrackingReferencePosition(trackingRefsRaw);
         
                 // dynamic Playspace
-                // TODO: check if this is correct or if z is flipped
-                trackingObjsRaw["PlaySpace"] = SetYAndXZRotationToZero(trackingRef);
-                metaData["PlaySpace"] = ("SteamVRPlayArea", "Playspace", "Hackebein", "openvr");
+                if (trackingRefsRaw.Count > 0)
+                {
+                    string[] order = trackingRefsRaw.Keys.OrderBy(k => k).ToArray();
+                    var pos = trackingRef.GetColumn(3);
+                    pos.y = 0f;
+                    float yaw = QuaternionFromMatrix(trackingRefsRaw[order[0]]).eulerAngles.y;
+                    trackingObjsRaw["PlaySpace"] = Matrix4x4.Rotate(Quaternion.Euler(0f, yaw, 0f));
+                    trackingObjsRaw["PlaySpace"].SetColumn(3, pos);
+                    metaData["PlaySpace"] = ("SteamVRPlayArea", "PlaySpace", "Hackebein", "openvr");
+                }
                 
                 // zero out Y+rotation
                 trackingRef = SetYAndRotationToZero(trackingRef);
@@ -197,6 +204,7 @@ namespace hackebein.objecttracking.steamvr
                             pos.GetColumn(3),
                             QuaternionFromMatrix(pos).eulerAngles));
                     }
+                    
                 }
             }
         
