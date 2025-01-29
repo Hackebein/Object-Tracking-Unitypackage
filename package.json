@@ -1,7 +1,7 @@
 {
   "name": "hackebein.objecttracking",
   "displayName": "Hackebein's Object Tracking",
-  "version": "0.6.13",
+  "version": "0.6.14",
   "description": "Hackebein's setup for Object Tracking in VRChat",
   "gitDependencies": {},
   "vpmDependencies": {
