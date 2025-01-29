@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Unity.XR.OpenVR;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -72,6 +73,44 @@ namespace hackebein.objecttracking
                         if (baseComponent.settings.addDebugMenu)
                         {
                             EditorPrefs.SetBool("Hackebein.ObjectTracking.ShowDebugView", true);
+                        }
+                    }
+                }
+            }
+            
+            SceneView sceneView = SceneView.lastActiveSceneView;
+
+            if (sceneView != null)
+            {
+                BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.NonPublic;
+                var sceneViewStateField = typeof(SceneView).GetField("m_SceneViewState", bindingFlags);
+                if (sceneViewStateField != null)
+                {
+                    var sceneViewState = sceneViewStateField.GetValue(sceneView);
+                    if (sceneViewState != null)
+                    {
+                        var alwaysRefreshField = sceneViewState.GetType().GetField("m_AlwaysRefresh", bindingFlags);
+                        if (alwaysRefreshField != null)
+                        {
+                            using (new GUILayout.HorizontalScope())
+                            {
+                                GUILayout.Label("In Editor FPS", halfWidth);
+                                bool currentValue = (bool)alwaysRefreshField.GetValue(sceneViewState);
+                                bool newValue = currentValue;
+                                GUI.backgroundColor = !currentValue ? Color.green : Color.white;
+                                if (GUILayout.Button("Limited", quarterWidth))
+                                {
+                                    alwaysRefreshField.SetValue(sceneViewState, !currentValue);
+                                    sceneView.Repaint();
+                                }
+                                GUI.backgroundColor = currentValue ? Color.green : Color.white;
+                                if (GUILayout.Button("Unlimted", quarterWidth))
+                                {
+                                    alwaysRefreshField.SetValue(sceneViewState, !currentValue);
+                                    sceneView.Repaint();
+                                }
+                                GUI.backgroundColor = Color.white; // Reset to default color
+                            }
                         }
                     }
                 }
