@@ -106,7 +106,10 @@ namespace hackebein.objecttracking.steamvr
                     allowConnectingToSteamVR = false;
                 }
                 else if (peError != EVRInitError.None)
-                    EditorUtility.DisplayDialog("[Hackebein's Object Tracking] SteamVR/OpenVR: Unknown Error", "Error: " + peError, "OK");
+                {
+                    Debug.LogWarning("[Hackebein's Object Tracking] SteamVR/OpenVR: Unknown Error", "Error: " + peError, "OK");
+                    allowConnectingToSteamVR = false;
+                }
             }
             return system;
         }
